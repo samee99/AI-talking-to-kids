@@ -1,17 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const soundButton = document.getElementById('soundButton');
+    const soundButtons = document.querySelectorAll('.sound-button');
     const pitchSlider = document.getElementById('pitchSlider');
+
+    const sounds = {
+        piano: { frequency: 440, waveform: 'sine' },
+        guitar: { frequency: 329.63, waveform: 'triangle' },
+        drum: { frequency: 100, waveform: 'square' }
+    };
 
     let oscillator = null;
     let gainNode = null;
 
-    function createSound() {
+    function createSound(soundType) {
         oscillator = audioContext.createOscillator();
         gainNode = audioContext.createGain();
 
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+        oscillator.type = sounds[soundType].waveform;
+        oscillator.frequency.setValueAtTime(sounds[soundType].frequency, audioContext.currentTime);
         
         const pitchValue = parseFloat(pitchSlider.value);
         oscillator.detune.setValueAtTime(1200 * Math.log2(pitchValue), audioContext.currentTime);
@@ -27,17 +33,20 @@ document.addEventListener('DOMContentLoaded', () => {
         oscillator.stop(audioContext.currentTime + 0.5);
     }
 
-    soundButton.addEventListener('click', () => {
-        if (audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-        createSound();
-        
-        // Change background color temporarily
-        document.body.style.backgroundColor = '#e0f7fa';
-        setTimeout(() => {
-            document.body.style.backgroundColor = '';
-        }, 500);
+    soundButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            const soundType = button.dataset.sound;
+            createSound(soundType);
+            
+            // Change background color temporarily
+            document.body.style.backgroundColor = '#e0f7fa';
+            setTimeout(() => {
+                document.body.style.backgroundColor = '';
+            }, 500);
+        });
     });
 
     pitchSlider.addEventListener('input', () => {

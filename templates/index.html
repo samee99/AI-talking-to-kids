@@ -16,9 +16,15 @@
             <input type="range" id="pitchSlider" min="0.5" max="2" step="0.1" value="1" class="w-full">
         </div>
         
-        <div class="flex justify-center">
-            <button id="soundButton" class="focus:outline-none">
-                <img src="{{ url_for('static', filename='images/sound_icon.svg') }}" alt="Sound Icon" class="w-48 h-48 transition-transform duration-200 ease-in-out transform hover:scale-110">
+        <div class="flex justify-center flex-wrap">
+            <button class="sound-button focus:outline-none m-4" data-sound="piano">
+                <img src="{{ url_for('static', filename='images/piano.svg') }}" alt="Piano" class="w-32 h-32 transition-transform duration-200 ease-in-out transform hover:scale-110">
+            </button>
+            <button class="sound-button focus:outline-none m-4" data-sound="guitar">
+                <img src="{{ url_for('static', filename='images/guitar.svg') }}" alt="Guitar" class="w-32 h-32 transition-transform duration-200 ease-in-out transform hover:scale-110">
+            </button>
+            <button class="sound-button focus:outline-none m-4" data-sound="drum">
+                <img src="{{ url_for('static', filename='images/drum.svg') }}" alt="Drum" class="w-32 h-32 transition-transform duration-200 ease-in-out transform hover:scale-110">
             </button>
         </div>
     </div>
