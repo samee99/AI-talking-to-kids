@@ -55,29 +55,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentAudio = source;
 
-        function drawVisualizer() {
-            animationId = requestAnimationFrame(drawVisualizer);
+        if (soundType === 'sun') {
+            window.location.href = '/sun_call';
+            source.onended = () => {
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000); // Wait for 2 seconds before returning to the main page
+            };
+        } else {
+            function drawVisualizer() {
+                animationId = requestAnimationFrame(drawVisualizer);
 
-            analyser.getByteFrequencyData(dataArray);
+                analyser.getByteFrequencyData(dataArray);
 
-            canvasCtx.fillStyle = 'rgb(200, 200, 200)';
-            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+                canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
-            const barWidth = (canvas.width / bufferLength) * 2.5;
-            let barHeight;
-            let x = 0;
+                const barWidth = (canvas.width / bufferLength) * 2.5;
+                let barHeight;
+                let x = 0;
 
-            for (let i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i] / 2;
+                for (let i = 0; i < bufferLength; i++) {
+                    barHeight = dataArray[i] / 2;
 
-                canvasCtx.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
-                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    canvasCtx.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
+                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
 
-                x += barWidth + 1;
+                    x += barWidth + 1;
+                }
             }
-        }
 
-        drawVisualizer();
+            drawVisualizer();
+        }
     }
 
     soundButtons.forEach(button => {
