@@ -32,7 +32,7 @@ def serve_sound(filename):
 
 @app.route('/sun_call')
 def sun_call():
-    return send_from_directory('static/images', 'sun_call.jpg')
+    return send_from_directory('images', 'sun_call.jpg')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

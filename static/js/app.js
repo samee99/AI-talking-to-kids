@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 analyser.getByteFrequencyData(dataArray);
 
-                canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+                canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
                 canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
                 const barWidth = (canvas.width / bufferLength) * 2.5;
@@ -76,12 +76,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 let x = 0;
 
                 for (let i = 0; i < bufferLength; i++) {
-                    barHeight = dataArray[i] / 2;
+                    barHeight = dataArray[i] * 2;
 
-                    canvasCtx.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
+                    const hue = (i / bufferLength) * 360;
+                    canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                    
                     canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
 
                     x += barWidth + 1;
+                }
+
+                // Add circular visualizer
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = Math.min(centerX, centerY) * 0.8;
+
+                canvasCtx.beginPath();
+                canvasCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                canvasCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                canvasCtx.lineWidth = 2;
+                canvasCtx.stroke();
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const angle = (i / bufferLength) * 2 * Math.PI;
+                    const length = (dataArray[i] / 255) * radius;
+
+                    const x1 = centerX + Math.cos(angle) * radius;
+                    const y1 = centerY + Math.sin(angle) * radius;
+                    const x2 = centerX + Math.cos(angle) * (radius - length);
+                    const y2 = centerY + Math.sin(angle) * (radius - length);
+
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(x1, y1);
+                    canvasCtx.lineTo(x2, y2);
+                    canvasCtx.strokeStyle = `hsl(${(i / bufferLength) * 360}, 100%, 50%)`;
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.stroke();
                 }
             }
 
