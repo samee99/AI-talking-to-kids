@@ -12,12 +12,11 @@
         <h1 class="text-3xl font-bold text-center mb-8">The universe talking to my kids</h1>
         
         <div class="mb-8">
-            <label for="ageSlider" class="block text-lg font-medium mb-2">Adjust Age:</label>
-            <input type="range" id="ageSlider" min="5" max="10" step="5" value="5" class="w-full">
-            <div class="flex justify-between">
-                <span>5 years</span>
-                <span>10 years</span>
-            </div>
+            <label for="ageSelect" class="block text-lg font-medium mb-2">Select Age:</label>
+            <select id="ageSelect" class="w-full p-2 border rounded">
+                <option value="5" selected>5 years old</option>
+                <option value="10">10 years old</option>
+            </select>
             <p class="text-center mt-2">Current age: <span id="ageDisplay">5 years old</span></p>
         </div>
         

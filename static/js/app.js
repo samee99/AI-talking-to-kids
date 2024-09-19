@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const soundButtons = document.querySelectorAll('.sound-button');
-    const ageSlider = document.getElementById('ageSlider');
+    const ageSelect = document.getElementById('ageSelect');
 
     const sounds = {
         moon: { file: 'moon' },
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAudio.stop();
         }
 
-        const age = parseInt(ageSlider.value);
+        const age = parseInt(ageSelect.value);
         const audioBuffer = await loadSound(soundType, age);
 
         const source = audioContext.createBufferSource();
@@ -51,9 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    ageSlider.addEventListener('input', () => {
-        // Update visuals or any other age-dependent elements if needed
-        const age = parseInt(ageSlider.value);
+    ageSelect.addEventListener('change', () => {
+        const age = parseInt(ageSelect.value);
         document.getElementById('ageDisplay').textContent = `${age} years old`;
     });
 });
