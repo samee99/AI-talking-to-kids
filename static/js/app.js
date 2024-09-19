@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const ageSelect = document.getElementById('ageSelect');
     const canvas = document.getElementById('visualizer');
     const canvasCtx = canvas.getContext('2d');
+    const callOverlay = document.getElementById('call-overlay');
+    const callTimer = document.getElementById('call-timer');
+    const callObjectName = document.getElementById('call-object-name');
+    const endCallButton = document.getElementById('end-call-button');
 
     const sounds = {
         moon: { file: 'moon' },
@@ -16,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let analyser = null;
     let dataArray = null;
     let animationId = null;
+    let callStartTime = null;
+    let callTimerInterval = null;
 
     function resizeCanvas() {
         canvas.width = canvas.clientWidth;
@@ -30,6 +36,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         return audioBuffer;
+    }
+
+    function updateCallTimer() {
+        const now = Date.now();
+        const elapsedTime = Math.floor((now - callStartTime) / 1000);
+        const minutes = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
+        const seconds = (elapsedTime % 60).toString().padStart(2, '0');
+        callTimer.textContent = `${minutes}:${seconds}`;
+    }
+
+    function showCallOverlay(soundType) {
+        callOverlay.classList.remove('hidden');
+        callObjectName.textContent = soundType.charAt(0).toUpperCase() + soundType.slice(1);
+        callStartTime = Date.now();
+        updateCallTimer();
+        callTimerInterval = setInterval(updateCallTimer, 1000);
+    }
+
+    function hideCallOverlay() {
+        callOverlay.classList.add('hidden');
+        clearInterval(callTimerInterval);
+        callTimer.textContent = '00:00';
     }
 
     async function playSound(soundType) {
@@ -55,68 +83,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentAudio = source;
 
-        if (soundType === 'sun') {
-            window.location.href = '/sun_call';
-            source.onended = () => {
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 2000); // Wait for 2 seconds before returning to the main page
-            };
-        } else {
-            function drawVisualizer() {
-                animationId = requestAnimationFrame(drawVisualizer);
+        showCallOverlay(soundType);
 
-                analyser.getByteFrequencyData(dataArray);
+        function drawVisualizer() {
+            animationId = requestAnimationFrame(drawVisualizer);
 
-                canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            analyser.getByteFrequencyData(dataArray);
 
-                const barWidth = (canvas.width / bufferLength) * 2.5;
-                let barHeight;
-                let x = 0;
+            canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
-                for (let i = 0; i < bufferLength; i++) {
-                    barHeight = dataArray[i] * 2;
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let barHeight;
+            let x = 0;
 
-                    const hue = (i / bufferLength) * 360;
-                    canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-                    
-                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+            for (let i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i] * 2;
 
-                    x += barWidth + 1;
-                }
+                const hue = (i / bufferLength) * 360;
+                canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                
+                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
 
-                // Add circular visualizer
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                const radius = Math.min(centerX, centerY) * 0.8;
-
-                canvasCtx.beginPath();
-                canvasCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                canvasCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                canvasCtx.lineWidth = 2;
-                canvasCtx.stroke();
-
-                for (let i = 0; i < bufferLength; i++) {
-                    const angle = (i / bufferLength) * 2 * Math.PI;
-                    const length = (dataArray[i] / 255) * radius;
-
-                    const x1 = centerX + Math.cos(angle) * radius;
-                    const y1 = centerY + Math.sin(angle) * radius;
-                    const x2 = centerX + Math.cos(angle) * (radius - length);
-                    const y2 = centerY + Math.sin(angle) * (radius - length);
-
-                    canvasCtx.beginPath();
-                    canvasCtx.moveTo(x1, y1);
-                    canvasCtx.lineTo(x2, y2);
-                    canvasCtx.strokeStyle = `hsl(${(i / bufferLength) * 360}, 100%, 50%)`;
-                    canvasCtx.lineWidth = 2;
-                    canvasCtx.stroke();
-                }
+                x += barWidth + 1;
             }
 
-            drawVisualizer();
+            // Add circular visualizer
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) * 0.8;
+
+            canvasCtx.beginPath();
+            canvasCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            canvasCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.stroke();
+
+            for (let i = 0; i < bufferLength; i++) {
+                const angle = (i / bufferLength) * 2 * Math.PI;
+                const length = (dataArray[i] / 255) * radius;
+
+                const x1 = centerX + Math.cos(angle) * radius;
+                const y1 = centerY + Math.sin(angle) * radius;
+                const x2 = centerX + Math.cos(angle) * (radius - length);
+                const y2 = centerY + Math.sin(angle) * (radius - length);
+
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(x1, y1);
+                canvasCtx.lineTo(x2, y2);
+                canvasCtx.strokeStyle = `hsl(${(i / bufferLength) * 360}, 100%, 50%)`;
+                canvasCtx.lineWidth = 2;
+                canvasCtx.stroke();
+            }
         }
+
+        drawVisualizer();
+
+        source.onended = () => {
+            cancelAnimationFrame(animationId);
+            hideCallOverlay();
+        };
     }
 
     soundButtons.forEach(button => {
@@ -132,5 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
     ageSelect.addEventListener('change', () => {
         const age = parseInt(ageSelect.value);
         document.getElementById('ageDisplay').textContent = `${age} years old`;
+    });
+
+    endCallButton.addEventListener('click', () => {
+        if (currentAudio) {
+            currentAudio.stop();
+        }
+        cancelAnimationFrame(animationId);
+        hideCallOverlay();
     });
 });

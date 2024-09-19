@@ -50,6 +50,26 @@
         <canvas id="visualizer" class="w-full h-64 mt-8 rounded-lg shadow-lg"></canvas>
     </div>
 
+    <div id="call-overlay" class="hidden fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center">
+        <div class="text-white text-4xl mb-4" id="call-timer">00:00</div>
+        <div class="text-white text-6xl mb-8" id="call-object-name"></div>
+        <div class="flex space-x-8">
+            <button class="call-button" id="audio-button">
+                <img src="{{ url_for('static', filename='images/audio-icon.svg') }}" alt="Audio" class="w-12 h-12">
+                <span>Audio</span>
+            </button>
+            <button class="call-button" id="facetime-button">
+                <img src="{{ url_for('static', filename='images/facetime-icon.svg') }}" alt="FaceTime" class="w-12 h-12">
+                <span>FaceTime</span>
+            </button>
+            <button class="call-button" id="mute-button">
+                <img src="{{ url_for('static', filename='images/mute-icon.svg') }}" alt="Mute" class="w-12 h-12">
+                <span>Mute</span>
+            </button>
+        </div>
+        <button class="mt-8 bg-red-600 text-white px-8 py-3 rounded-full text-xl" id="end-call-button">End</button>
+    </div>
+
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
