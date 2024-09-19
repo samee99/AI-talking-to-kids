@@ -26,7 +26,14 @@ body {
 
 #call-overlay {
     z-index: 1000;
-    background-color: #000000; /* Changed to fully opaque black */
+    background-color: #000000;
+}
+
+#visualizer {
+    width: 100%;
+    max-width: 800px;
+    height: 200px;
+    margin-bottom: 2rem;
 }
 
 .call-button {

@@ -46,13 +46,12 @@
                 <p class="text-center mt-2">Tree</p>
             </div>
         </div>
-
-        <canvas id="visualizer" class="w-full h-64 mt-8 rounded-lg shadow-lg"></canvas>
     </div>
 
     <div id="call-overlay" class="hidden fixed inset-0 flex flex-col items-center justify-center">
         <div class="text-white text-4xl mb-4" id="call-timer">00:00</div>
         <div class="text-white text-6xl mb-8" id="call-object-name"></div>
+        <canvas id="visualizer" class="w-full h-64 mb-8 rounded-lg shadow-lg"></canvas>
         <div class="flex space-x-8">
             <button class="call-button" id="audio-button">
                 <img src="{{ url_for('static', filename='images/audio-icon.svg') }}" alt="Audio" class="w-12 h-12">
