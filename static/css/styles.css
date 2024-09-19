@@ -29,11 +29,18 @@ body {
     background-color: #000000;
 }
 
+.visualizer-container {
+    width: 200px;
+    height: 200px;
+    position: relative;
+}
+
 #visualizer {
     width: 100%;
-    max-width: 800px;
-    height: 200px;
-    margin-bottom: 2rem;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .call-button {

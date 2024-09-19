@@ -106,25 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const barWidth = (canvas.width / dataArray.length) * 2.5;
-        let barHeight;
-        let x = 0;
-
-        for (let i = 0; i < dataArray.length; i++) {
-            barHeight = dataArray[i] * 2;
-
-            const hue = (i / dataArray.length) * 360;
-            canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-            
-            canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-
-            x += barWidth + 1;
-        }
-
-        // Add circular visualizer
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const radius = Math.min(centerX, centerY) * 0.8;
+        const radius = Math.min(centerX, centerY) * 0.4; // Reduced size
 
         canvasCtx.beginPath();
         canvasCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
@@ -134,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 0; i < dataArray.length; i++) {
             const angle = (i / dataArray.length) * 2 * Math.PI;
-            const length = (dataArray[i] / 255) * radius;
+            const length = (dataArray[i] / 255) * radius * 0.5; // Shorter lines
 
             const x1 = centerX + Math.cos(angle) * radius;
             const y1 = centerY + Math.sin(angle) * radius;
