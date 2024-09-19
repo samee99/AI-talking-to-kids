@@ -17,15 +17,30 @@
         </div>
         
         <div class="flex justify-center flex-wrap">
-            <button class="sound-button focus:outline-none m-4" data-sound="piano">
-                <img src="{{ url_for('static', filename='images/piano.svg') }}" alt="Piano" class="w-32 h-32 transition-transform duration-200 ease-in-out transform hover:scale-110">
-            </button>
-            <button class="sound-button focus:outline-none m-4" data-sound="guitar">
-                <img src="{{ url_for('static', filename='images/guitar.svg') }}" alt="Guitar" class="w-32 h-32 transition-transform duration-200 ease-in-out transform hover:scale-110">
-            </button>
-            <button class="sound-button focus:outline-none m-4" data-sound="drum">
-                <img src="{{ url_for('static', filename='images/drum.svg') }}" alt="Drum" class="w-32 h-32 transition-transform duration-200 ease-in-out transform hover:scale-110">
-            </button>
+            <div class="sound-button-container m-4">
+                <button class="sound-button focus:outline-none" data-sound="moon">
+                    <img src="{{ url_for('static', filename='moon.jpg') }}" alt="Moon" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
+                </button>
+                <p class="text-center mt-2">Moon</p>
+            </div>
+            <div class="sound-button-container m-4">
+                <button class="sound-button focus:outline-none" data-sound="sun">
+                    <img src="{{ url_for('static', filename='sun.jpg') }}" alt="Sun" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
+                </button>
+                <p class="text-center mt-2">Sun</p>
+            </div>
+            <div class="sound-button-container m-4">
+                <button class="sound-button focus:outline-none" data-sound="rock">
+                    <img src="{{ url_for('static', filename='rock.jpg') }}" alt="Rock" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
+                </button>
+                <p class="text-center mt-2">Rock</p>
+            </div>
+            <div class="sound-button-container m-4">
+                <button class="sound-button focus:outline-none" data-sound="tree">
+                    <img src="{{ url_for('static', filename='tree.jpg') }}" alt="Tree" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
+                </button>
+                <p class="text-center mt-2">Tree</p>
+            </div>
         </div>
     </div>
 

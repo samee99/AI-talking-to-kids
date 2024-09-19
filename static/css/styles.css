@@ -1,8 +1,25 @@
-/* Add any custom styles here */
 body {
     transition: background-color 0.3s ease;
 }
 
-#soundButton:active img {
+.sound-button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.sound-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.sound-button img {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.sound-button:active img {
     transform: scale(0.95);
 }

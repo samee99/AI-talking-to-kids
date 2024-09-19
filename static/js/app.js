@@ -4,9 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const pitchSlider = document.getElementById('pitchSlider');
 
     const sounds = {
-        piano: { frequency: 440, waveform: 'sine' },
-        guitar: { frequency: 329.63, waveform: 'triangle' },
-        drum: { frequency: 100, waveform: 'square' }
+        moon: { frequency: 220, waveform: 'sine' },
+        sun: { frequency: 440, waveform: 'square' },
+        rock: { frequency: 330, waveform: 'triangle' },
+        tree: { frequency: 110, waveform: 'sawtooth' }
     };
 
     let oscillator = null;
