@@ -1,13 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const soundButtons = document.querySelectorAll('.sound-button');
-    const pitchSlider = document.getElementById('pitchSlider');
+    const ageSlider = document.getElementById('ageSlider');
 
     const sounds = {
-        moon: { frequency: 220, waveform: 'sine' },
-        sun: { frequency: 440, waveform: 'square' },
-        rock: { frequency: 330, waveform: 'triangle' },
-        tree: { frequency: 110, waveform: 'sawtooth' }
+        moon: { baseFrequency: 220, waveform: 'sine' },
+        sun: { baseFrequency: 440, waveform: 'square' },
+        rock: { baseFrequency: 330, waveform: 'triangle' },
+        tree: { baseFrequency: 110, waveform: 'sawtooth' }
     };
 
     let oscillator = null;
@@ -17,21 +17,32 @@ document.addEventListener('DOMContentLoaded', () => {
         oscillator = audioContext.createOscillator();
         gainNode = audioContext.createGain();
 
+        const age = parseInt(ageSlider.value);
+        const complexityFactor = (age - 5) / 5; // 0 for 5-year-old, 1 for 10-year-old
+
         oscillator.type = sounds[soundType].waveform;
-        oscillator.frequency.setValueAtTime(sounds[soundType].frequency, audioContext.currentTime);
-        
-        const pitchValue = parseFloat(pitchSlider.value);
-        oscillator.detune.setValueAtTime(1200 * Math.log2(pitchValue), audioContext.currentTime);
+        const frequency = sounds[soundType].baseFrequency * (1 + complexityFactor * 0.5);
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
 
         gainNode.gain.setValueAtTime(0, audioContext.currentTime);
         gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.01);
-        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
+        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + (0.5 + complexityFactor * 0.5));
 
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
 
         oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.5);
+        oscillator.stop(audioContext.currentTime + (0.5 + complexityFactor * 0.5));
+
+        // Add harmonics for older ages
+        if (age > 7) {
+            const harmonicOscillator = audioContext.createOscillator();
+            harmonicOscillator.type = 'sine';
+            harmonicOscillator.frequency.setValueAtTime(frequency * 2, audioContext.currentTime);
+            harmonicOscillator.connect(gainNode);
+            harmonicOscillator.start();
+            harmonicOscillator.stop(audioContext.currentTime + (0.5 + complexityFactor * 0.5));
+        }
     }
 
     soundButtons.forEach(button => {
@@ -50,10 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    pitchSlider.addEventListener('input', () => {
-        const pitchValue = parseFloat(pitchSlider.value);
-        if (oscillator) {
-            oscillator.detune.setValueAtTime(1200 * Math.log2(pitchValue), audioContext.currentTime);
-        }
+    ageSlider.addEventListener('input', () => {
+        // Update visuals or any other age-dependent elements if needed
     });
 });
