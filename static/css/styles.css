@@ -26,6 +26,7 @@ body {
 
 #call-overlay {
     z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.7); /* Adjusted opacity here */
 }
 
 .call-button {
