@@ -8,6 +8,10 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 flask = "^3.0.3"
+elevenlabs = "0.2.24"
+speechrecognition = "^3.10.4"
+openai = "^1.47.0"
+flask-cors = "^5.0.0"
 
 
 [build-system]

@@ -175,17 +175,14 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.json())
             .then(data => {
                 if (data.authenticated) {
-                    // User is signed in, implement talk back functionality here
-                    console.log('User is signed in, implement talk back functionality');
+                    showTalkBackModal();
                 } else {
-                    // User is not signed in, show sign-up/sign-in modal
                     showAuthModal();
                 }
             });
     });
 
     function showAuthModal() {
-        // Create and show the authentication modal
         const modal = document.createElement('div');
         modal.innerHTML = `
             <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="auth-modal">
@@ -211,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.body.appendChild(modal);
 
-        // Add event listeners for the buttons
         document.getElementById('sign-up-btn').addEventListener('click', () => {
             window.location.href = '/signup';
         });
@@ -219,11 +215,120 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/signin';
         });
 
-        // Close modal when clicking outside
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 document.body.removeChild(modal);
             }
         });
+    }
+
+    function showTalkBackModal() {
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="talk-back-modal">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <div class="mt-3 text-center">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Talk to ${currentSoundType}</h3>
+                        <div class="mt-2 px-7 py-3">
+                            <textarea id="user-message" class="w-full p-2 border rounded" rows="4" placeholder="Type your message here..."></textarea>
+                        </div>
+                        <div class="items-center px-4 py-3">
+                            <button id="send-message-btn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                                Send Message
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('send-message-btn').addEventListener('click', () => {
+            const userMessage = document.getElementById('user-message').value;
+            if (userMessage.trim() !== '') {
+                sendMessageToAI(userMessage);
+                document.body.removeChild(modal);
+            }
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+    }
+
+    async function sendMessageToAI(message) {
+        try {
+            const response = await fetch('/generate-response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    object: currentSoundType,
+                    age: parseInt(ageSelect.value)
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            playAIResponse(data.text, data.audio_url);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while processing your message. Please try again.');
+        }
+    }
+
+    async function playAIResponse(text, audioUrl) {
+        // Display AI response text
+        const responseModal = document.createElement('div');
+        responseModal.innerHTML = `
+            <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="ai-response-modal">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <div class="mt-3 text-center">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">${currentSoundType}'s Response</h3>
+                        <div class="mt-2 px-7 py-3">
+                            <p id="ai-response-text" class="text-sm text-gray-500">${text}</p>
+                        </div>
+                        <div class="items-center px-4 py-3">
+                            <button id="close-response-btn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(responseModal);
+
+        document.getElementById('close-response-btn').addEventListener('click', () => {
+            document.body.removeChild(responseModal);
+        });
+
+        // Play AI response audio
+        const audio = new Audio(audioUrl);
+        audio.play();
+
+        // Set up visualizer for AI response audio
+        const source = audioContext.createMediaElementSource(audio);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+
+        drawVisualizer();
+
+        audio.onended = () => {
+            cancelAnimationFrame(animationId);
+            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        };
     }
 });

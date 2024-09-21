@@ -3,9 +3,19 @@ from flask import Flask, render_template, send_from_directory, request, jsonify,
 from shutil import copy
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
+from elevenlabs import generate, set_api_key, Voice
+import openai
+from flask_cors import CORS
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
+CORS(app)
 app.secret_key = os.urandom(24)  # Set a secret key for session management
+
+# Set up ElevenLabs API
+set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
+
+# Set up OpenAI API
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 # Database setup
 def get_db():
@@ -109,6 +119,51 @@ def signin():
 def signout():
     session.clear()
     return redirect(url_for('index'))
+
+@app.route('/generate-response', methods=['POST'])
+def generate_response():
+    if 'user_id' not in session:
+        return jsonify({"error": "User not authenticated"}), 401
+
+    data = request.json
+    user_message = data.get('message')
+    object_name = data.get('object')
+    age = data.get('age')
+
+    # Generate AI response using OpenAI
+    prompt = f"You are {object_name} talking to a {age}-year-old child. The child says: '{user_message}'. Respond in a friendly, educational manner appropriate for their age, in 50 words or less."
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": user_message}
+            ]
+        )
+        ai_response = response.choices[0].message.content.strip()
+
+        # Generate audio using ElevenLabs
+        voice = Voice(voice_id="21m00Tcm4TlvDq8ikWAM", name="Rachel")
+        audio = generate(
+            text=ai_response,
+            voice=voice,
+            model="eleven_monolingual_v1"
+        )
+
+        # Save audio to a temporary file
+        temp_audio_path = os.path.join('static', 'temp', f"{object_name}_response.mp3")
+        os.makedirs(os.path.dirname(temp_audio_path), exist_ok=True)
+        with open(temp_audio_path, "wb") as f:
+            f.write(audio)
+
+        return jsonify({
+            "text": ai_response,
+            "audio_url": f"/static/temp/{object_name}_response.mp3"
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
