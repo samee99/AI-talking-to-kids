@@ -96,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAudio = source;
 
         showCallOverlay(soundType);
+        console.log('Current sound type updated:', soundType);
 
         source.onended = () => {
             hideCallOverlay();
@@ -260,6 +261,10 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Current sound type:', currentSoundType);
             console.log('Selected age:', ageSelect.value);
             
+            if (!currentSoundType) {
+                throw new Error('No object selected. Please select an object before sending a message.');
+            }
+
             const requestBody = {
                 message: message,
                 object: currentSoundType,
