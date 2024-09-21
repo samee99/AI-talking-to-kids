@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const callTimer = document.getElementById('call-timer');
     const callObjectName = document.getElementById('call-object-name');
     const endCallButton = document.getElementById('end-call-button');
+    const talkBackButton = document.getElementById('talk-back-button');
 
     const sounds = {
         moon: { file: 'moon', image: new Image() },
@@ -115,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        const radius = Math.min(centerX, centerY) * 0.6; // Increased size by 1.5 times
+        const radius = Math.min(centerX, centerY) * 0.6;
 
         // Draw the image
         const image = sounds[currentSoundType].image;
@@ -167,4 +168,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         hideCallOverlay();
     });
+
+    talkBackButton.addEventListener('click', () => {
+        // Check if user is signed in
+        fetch('/check-auth')
+            .then(response => response.json())
+            .then(data => {
+                if (data.authenticated) {
+                    // User is signed in, implement talk back functionality here
+                    console.log('User is signed in, implement talk back functionality');
+                } else {
+                    // User is not signed in, show sign-up/sign-in modal
+                    showAuthModal();
+                }
+            });
+    });
+
+    function showAuthModal() {
+        // Create and show the authentication modal
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+            <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="auth-modal">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <div class="mt-3 text-center">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Sign Up or Sign In</h3>
+                        <div class="mt-2 px-7 py-3">
+                            <p class="text-sm text-gray-500">
+                                You need to sign up or sign in to use the Talk Back feature.
+                            </p>
+                        </div>
+                        <div class="items-center px-4 py-3">
+                            <button id="sign-up-btn" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-300">
+                                Sign Up
+                            </button>
+                            <button id="sign-in-btn" class="mt-3 px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                                Sign In
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Add event listeners for the buttons
+        document.getElementById('sign-up-btn').addEventListener('click', () => {
+            window.location.href = '/signup';
+        });
+        document.getElementById('sign-in-btn').addEventListener('click', () => {
+            window.location.href = '/signin';
+        });
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+    }
 });

@@ -9,7 +9,23 @@
 </head>
 <body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
     <div class="container mx-auto px-4">
-        <h1 class="text-3xl font-bold text-center mb-8">The universe talking to my kids</h1>
+        <h1 class="text-3xl font-bold text-center mb-4">The universe talking to my kids</h1>
+        
+        <div class="flex justify-center space-x-4 mb-8">
+            {% if user %}
+                <span class="text-gray-700">Welcome, {{ user['username'] }}!</span>
+                <a href="{{ url_for('signout') }}" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                    Sign Out
+                </a>
+            {% else %}
+                <a href="{{ url_for('signup') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Sign Up
+                </a>
+                <a href="{{ url_for('signin') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Sign In
+                </a>
+            {% endif %}
+        </div>
         
         <div class="mb-8">
             <label for="ageSelect" class="block text-lg font-medium mb-2">Select Age:</label>
@@ -66,6 +82,10 @@
             <button class="call-button" id="mute-button">
                 <img src="{{ url_for('static', filename='images/mute-icon.svg') }}" alt="Mute" class="w-12 h-12">
                 <span>Mute</span>
+            </button>
+            <button class="call-button" id="talk-back-button">
+                <img src="{{ url_for('static', filename='images/talk-back-icon.svg') }}" alt="Talk Back" class="w-12 h-12">
+                <span>Talk Back</span>
             </button>
         </div>
         <button class="mt-8 bg-red-600 text-white px-8 py-3 rounded-full text-xl" id="end-call-button">End</button>
