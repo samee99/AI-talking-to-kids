@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         callTimerInterval = setInterval(updateCallTimer, 1000);
         resizeCanvas();
         currentSoundType = soundType;
+        console.log('Current sound type set in showCallOverlay:', currentSoundType);
         drawVisualizer();
     }
 
@@ -69,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         callTimer.textContent = '00:00';
         cancelAnimationFrame(animationId);
         canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-        currentSoundType = null;
+        // Do not reset currentSoundType here
     }
 
     async function playSound(soundType) {
@@ -94,9 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
         source.start();
 
         currentAudio = source;
+        currentSoundType = soundType;
+        console.log('Current sound type set in playSound:', currentSoundType);
 
         showCallOverlay(soundType);
-        console.log('Current sound type updated:', soundType);
 
         source.onended = () => {
             hideCallOverlay();
@@ -258,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function sendMessageToAI(message) {
         try {
             console.log('Sending message to AI:', message);
-            console.log('Current sound type:', currentSoundType);
+            console.log('Current sound type in sendMessageToAI:', currentSoundType);
             console.log('Selected age:', ageSelect.value);
             
             if (!currentSoundType) {
