@@ -189,7 +189,7 @@ def generate_response():
                                                       "content":
                                                       user_message
                                                   }])
-        ai_response = completion.choices[0].response
+        ai_response = response.choices[0].message
         logger.info(f"Received response from OpenAI: {ai_response}")
 
         # Generate audio using ElevenLabs
