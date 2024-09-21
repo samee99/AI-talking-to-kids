@@ -260,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function sendMessageToAI(message) {
         try {
+            console.log('Sending message to AI:', message);
             const response = await fetch('/generate-response', {
                 method: 'POST',
                 headers: {
@@ -273,18 +274,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                const errorData = await response.json();
+                throw new Error(`Server error: ${errorData.error || response.statusText}`);
             }
 
             const data = await response.json();
+            console.log('Received response from server:', data);
             playAIResponse(data.text, data.audio_url);
         } catch (error) {
-            console.error('Error:', error);
-            alert('An error occurred while processing your message. Please try again.');
+            console.error('Error in sendMessageToAI:', error);
+            alert(`An error occurred while processing your message: ${error.message}. Please try again.`);
         }
     }
 
     async function playAIResponse(text, audioUrl) {
+        console.log('Playing AI response:', text, audioUrl);
         // Display AI response text
         const responseModal = document.createElement('div');
         responseModal.innerHTML = `
@@ -311,24 +315,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Play AI response audio
-        const audio = new Audio(audioUrl);
-        audio.play();
+        try {
+            const audio = new Audio(audioUrl);
+            await audio.play();
+            console.log('Audio playback started');
 
-        // Set up visualizer for AI response audio
-        const source = audioContext.createMediaElementSource(audio);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        const bufferLength = analyser.frequencyBinCount;
-        dataArray = new Uint8Array(bufferLength);
+            // Set up visualizer for AI response audio
+            const source = audioContext.createMediaElementSource(audio);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            const bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
 
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
 
-        drawVisualizer();
+            drawVisualizer();
 
-        audio.onended = () => {
-            cancelAnimationFrame(animationId);
-            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-        };
+            audio.onended = () => {
+                console.log('Audio playback ended');
+                cancelAnimationFrame(animationId);
+                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+            };
+        } catch (error) {
+            console.error('Error playing audio:', error);
+            alert('An error occurred while playing the audio. Please try again.');
+        }
     }
 });

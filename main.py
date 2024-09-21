@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Flask, render_template, send_from_directory, request, jsonify, redirect, url_for, session, flash
 from shutil import copy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,6 +11,10 @@ from flask_cors import CORS
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)
 app.secret_key = os.urandom(24)  # Set a secret key for session management
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Set up ElevenLabs API
 set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
@@ -123,6 +128,7 @@ def signout():
 @app.route('/generate-response', methods=['POST'])
 def generate_response():
     if 'user_id' not in session:
+        logger.warning("Unauthenticated user tried to access generate-response")
         return jsonify({"error": "User not authenticated"}), 401
 
     data = request.json
@@ -130,10 +136,15 @@ def generate_response():
     object_name = data.get('object')
     age = data.get('age')
 
+    if not all([user_message, object_name, age]):
+        logger.error(f"Missing required data: message={user_message}, object={object_name}, age={age}")
+        return jsonify({"error": "Missing required data"}), 400
+
     # Generate AI response using OpenAI
     prompt = f"You are {object_name} talking to a {age}-year-old child. The child says: '{user_message}'. Respond in a friendly, educational manner appropriate for their age, in 50 words or less."
     
     try:
+        logger.info(f"Sending request to OpenAI: prompt={prompt}")
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -142,9 +153,11 @@ def generate_response():
             ]
         )
         ai_response = response.choices[0].message.content.strip()
+        logger.info(f"Received response from OpenAI: {ai_response}")
 
         # Generate audio using ElevenLabs
         voice = Voice(voice_id="21m00Tcm4TlvDq8ikWAM", name="Rachel")
+        logger.info(f"Generating audio with ElevenLabs: text={ai_response}")
         audio = generate(
             text=ai_response,
             voice=voice,
@@ -156,6 +169,7 @@ def generate_response():
         os.makedirs(os.path.dirname(temp_audio_path), exist_ok=True)
         with open(temp_audio_path, "wb") as f:
             f.write(audio)
+        logger.info(f"Audio saved to {temp_audio_path}")
 
         return jsonify({
             "text": ai_response,
@@ -163,6 +177,7 @@ def generate_response():
         })
 
     except Exception as e:
+        logger.error(f"Error in generate_response: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
