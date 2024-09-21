@@ -64,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSoundType = soundType;
         drawVisualizer();
 
-        // Generate and play initial greeting
         await sendMessageToAI("Hello", true);
     }
 
@@ -79,35 +78,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function checkUserAuthentication() {
+        const response = await fetch('/check-auth');
+        const data = await response.json();
+        isUserSignedIn = data.authenticated;
+        return isUserSignedIn;
+    }
+
     async function playSound(soundType) {
         if (currentAudio) {
             currentAudio.stop();
             cancelAnimationFrame(animationId);
         }
 
+        const isUserSignedIn = await checkUserAuthentication();
         const age = parseInt(ageSelect.value);
-        const audioBuffer = await loadSound(soundType, age);
 
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
+        if (isUserSignedIn) {
+            showCallOverlay(soundType);
+            await sendMessageToAI("Hello", true);
+        } else {
+            const audioBuffer = await loadSound(soundType, age);
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
 
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        const bufferLength = analyser.frequencyBinCount;
-        dataArray = new Uint8Array(bufferLength);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            const bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
 
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        source.start();
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+            source.start();
 
-        currentAudio = source;
-        currentSoundType = soundType;
+            currentAudio = source;
+            currentSoundType = soundType;
 
-        showCallOverlay(soundType);
+            showCallOverlay(soundType);
 
-        source.onended = () => {
-            hideCallOverlay();
-        };
+            source.onended = () => {
+                hideCallOverlay();
+            };
+        }
     }
 
     function drawVisualizer() {
@@ -174,39 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
         hideCallOverlay();
     });
 
-    function startContinuousListening() {
-        if (!('webkitSpeechRecognition' in window)) {
-            alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
-            return;
-        }
-
-        recognition = new webkitSpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-        recognition.onstart = () => {
-            listeningStatus.textContent = "Listening...";
-        };
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            listeningStatus.textContent = "Processing...";
-            sendMessageToAI(transcript);
-        };
-
-        recognition.onerror = (event) => {
-            console.error("Speech recognition error", event.error);
-            listeningStatus.textContent = "Click to speak";
-        };
-
-        recognition.onend = () => {
-            listeningStatus.textContent = "Click to speak";
-            recognition.start();
-        };
-
-        recognition.start();
-    }
-
     async function sendMessageToAI(message, isInitialGreeting = false) {
         try {
             listeningStatus.textContent = "AI is thinking...";
@@ -240,11 +219,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (isInitialGreeting) {
                 startContinuousListening();
+            } else {
+                if (recognition) {
+                    recognition.start();
+                }
             }
         } catch (error) {
             console.error('Error in sendMessageToAI:', error);
             alert(`An error occurred while processing your message: ${error.message}. Please try again.`);
             listeningStatus.textContent = "Click to speak";
+            hideCallOverlay();
         }
     }
 
@@ -278,18 +262,51 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error playing audio:', error);
             alert('An error occurred while playing the audio. Please try again.');
             listeningStatus.textContent = "Click to speak";
+            if (recognition) {
+                recognition.start();
+            }
         }
     }
 
-    // Check if the user is signed in when the page loads
-    fetch('/check-auth')
-        .then(response => response.json())
-        .then(data => {
-            isUserSignedIn = data.authenticated;
-            if (isUserSignedIn) {
-                console.log(`User is signed in as: ${data.username}`);
-            } else {
-                console.log('User is not signed in');
+    function startContinuousListening() {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
+            return;
+        }
+
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => {
+            listeningStatus.textContent = "Listening...";
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            listeningStatus.textContent = "Processing...";
+            sendMessageToAI(transcript);
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error", event.error);
+            listeningStatus.textContent = "Click to speak";
+        };
+
+        recognition.onend = () => {
+            if (!callOverlay.classList.contains('hidden')) {
+                recognition.start();
             }
-        });
+        };
+
+        recognition.start();
+    }
+
+    checkUserAuthentication().then((authenticated) => {
+        if (authenticated) {
+            console.log('User is signed in');
+        } else {
+            console.log('User is not signed in');
+        }
+    });
 });

@@ -148,8 +148,7 @@ def signout():
 @app.route('/generate-response', methods=['POST'])
 def generate_response():
     if 'user_id' not in session:
-        logger.warning(
-            "Unauthenticated user tried to access generate-response")
+        logger.warning("Unauthenticated user tried to access generate-response")
         return jsonify({"error": "User not authenticated"}), 401
 
     data = request.json
@@ -177,17 +176,19 @@ def generate_response():
 
     # Generate AI response using OpenAI
     if is_initial_greeting:
-        prompt = f"You are {object_name} greeting a {age}-year-old child. Introduce yourself and ask how you can help them today. Keep your response friendly, educational, and appropriate for their age, in 50 words or less."
+        system_message = f"You are {object_name} greeting a {age}-year-old child. Introduce yourself and ask how you can help them today. Keep your response friendly, educational, and appropriate for their age, in 50 words or less."
+        user_content = ""
     else:
-        prompt = f"You are {object_name} talking to a {age}-year-old child. The child says: '{user_message}'. Respond in a friendly, educational manner appropriate for their age, in 50 words or less."
+        system_message = f"You are {object_name} talking to a {age}-year-old child. Respond in a friendly, educational manner appropriate for their age, in 50 words or less. Maintain context from previous messages."
+        user_content = user_message
 
     try:
-        logger.info(f"Sending request to OpenAI: prompt={prompt}")
+        logger.info(f"Sending request to OpenAI: system_message={system_message}, user_content={user_content}")
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": user_message if not is_initial_greeting else ""}
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_content}
             ]
         )
         ai_response = response.choices[0].message.content
@@ -199,14 +200,15 @@ def generate_response():
         logger.info(f"Generating audio with ElevenLabs: text={ai_response}")
 
         # Generate audio using ElevenLabs
-        audio = generate(text=ai_response,
-                         voice=Voice(voice_id="pNInz6obpgDQGcFmaJgB",
-                                     name="Adam"),
-                         model="eleven_monolingual_v1")
+        # Use a child-friendly voice (e.g., "Bella" or "Josh")
+        audio = generate(
+            text=ai_response,
+            voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL", name="Bella"),
+            model="eleven_monolingual_v1"
+        )
 
         # Save audio to a temporary file
-        temp_audio_path = os.path.join('static', 'temp',
-                                       f"{object_name}_response.mp3")
+        temp_audio_path = os.path.join('static', 'temp', f"{object_name}_response.mp3")
         os.makedirs(os.path.dirname(temp_audio_path), exist_ok=True)
         with open(temp_audio_path, "wb") as f:
             if isinstance(audio, bytes):
