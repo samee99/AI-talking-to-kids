@@ -8,8 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const callTimer = document.getElementById('call-timer');
     const callObjectName = document.getElementById('call-object-name');
     const endCallButton = document.getElementById('end-call-button');
-    const talkBackButton = document.getElementById('talk-back-button');
-    const startSpeakingButton = document.getElementById('start-speaking-button');
+    const listeningStatus = document.getElementById('listening-status');
 
     const sounds = {
         moon: { file: 'moon', image: new Image() },
@@ -30,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let callTimerInterval = null;
     let currentSoundType = null;
     let isUserSignedIn = false;
+    let recognition = null;
 
     function resizeCanvas() {
         canvas.width = canvas.clientWidth;
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         callTimer.textContent = `${minutes}:${seconds}`;
     }
 
-    function showCallOverlay(soundType) {
+    async function showCallOverlay(soundType) {
         callOverlay.classList.remove('hidden');
         callObjectName.textContent = soundType.charAt(0).toUpperCase() + soundType.slice(1);
         callStartTime = Date.now();
@@ -62,16 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
         callTimerInterval = setInterval(updateCallTimer, 1000);
         resizeCanvas();
         currentSoundType = soundType;
-        console.log('Current sound type set in showCallOverlay:', currentSoundType);
         drawVisualizer();
 
-        if (isUserSignedIn) {
-            talkBackButton.classList.add('hidden');
-            startSpeakingButton.classList.remove('hidden');
-        } else {
-            talkBackButton.classList.remove('hidden');
-            startSpeakingButton.classList.add('hidden');
-        }
+        // Generate and play initial greeting
+        await sendMessageToAI("Hello", true);
     }
 
     function hideCallOverlay() {
@@ -80,6 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
         callTimer.textContent = '00:00';
         cancelAnimationFrame(animationId);
         canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        if (recognition) {
+            recognition.stop();
+        }
     }
 
     async function playSound(soundType) {
@@ -105,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentAudio = source;
         currentSoundType = soundType;
-        console.log('Current sound type set in playSound:', currentSoundType);
 
         showCallOverlay(soundType);
 
@@ -178,133 +174,42 @@ document.addEventListener('DOMContentLoaded', () => {
         hideCallOverlay();
     });
 
-    talkBackButton.addEventListener('click', () => {
-        fetch('/check-auth')
-            .then(response => response.json())
-            .then(data => {
-                if (data.authenticated) {
-                    showTalkBackModal();
-                } else {
-                    showAuthModal();
-                }
-            });
-    });
-
-    startSpeakingButton.addEventListener('click', () => {
+    function startContinuousListening() {
         if (!('webkitSpeechRecognition' in window)) {
             alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
             return;
         }
 
-        const recognition = new webkitSpeechRecognition();
+        recognition = new webkitSpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = false;
 
         recognition.onstart = () => {
-            startSpeakingButton.textContent = "Listening...";
-            startSpeakingButton.disabled = true;
+            listeningStatus.textContent = "Listening...";
         };
 
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
+            listeningStatus.textContent = "Processing...";
             sendMessageToAI(transcript);
         };
 
         recognition.onerror = (event) => {
             console.error("Speech recognition error", event.error);
-            startSpeakingButton.textContent = "Start Speaking";
-            startSpeakingButton.disabled = false;
+            listeningStatus.textContent = "Click to speak";
         };
 
         recognition.onend = () => {
-            startSpeakingButton.textContent = "Start Speaking";
-            startSpeakingButton.disabled = false;
+            listeningStatus.textContent = "Click to speak";
+            recognition.start();
         };
 
         recognition.start();
-    });
-
-    function showAuthModal() {
-        const modal = document.createElement('div');
-        modal.innerHTML = `
-            <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="auth-modal">
-                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                    <div class="mt-3 text-center">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Sign Up or Sign In</h3>
-                        <div class="mt-2 px-7 py-3">
-                            <p class="text-sm text-gray-500">
-                                You need to sign up or sign in to use the Talk Back feature.
-                            </p>
-                        </div>
-                        <div class="items-center px-4 py-3">
-                            <button id="sign-up-btn" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-300">
-                                Sign Up
-                            </button>
-                            <button id="sign-in-btn" class="mt-3 px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
-                                Sign In
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        document.getElementById('sign-up-btn').addEventListener('click', () => {
-            window.location.href = '/signup';
-        });
-        document.getElementById('sign-in-btn').addEventListener('click', () => {
-            window.location.href = '/signin';
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                document.body.removeChild(modal);
-            }
-        });
     }
 
-    function showTalkBackModal() {
-        const modal = document.createElement('div');
-        modal.innerHTML = `
-            <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="talk-back-modal">
-                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                    <div class="mt-3 text-center">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Talk to ${currentSoundType}</h3>
-                        <div class="mt-2 px-7 py-3">
-                            <textarea id="user-message" class="w-full p-2 border rounded" rows="4" placeholder="Type your message here..."></textarea>
-                        </div>
-                        <div class="items-center px-4 py-3">
-                            <button id="send-message-btn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
-                                Send Message
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        document.getElementById('send-message-btn').addEventListener('click', () => {
-            const userMessage = document.getElementById('user-message').value;
-            if (userMessage.trim() !== '') {
-                sendMessageToAI(userMessage);
-                document.body.removeChild(modal);
-            }
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                document.body.removeChild(modal);
-            }
-        });
-    }
-
-    async function sendMessageToAI(message) {
+    async function sendMessageToAI(message, isInitialGreeting = false) {
         try {
-            console.log('Sending message to AI:', message);
-            console.log('Current sound type in sendMessageToAI:', currentSoundType);
-            console.log('Selected age:', ageSelect.value);
+            listeningStatus.textContent = "AI is thinking...";
             
             if (!currentSoundType) {
                 throw new Error('No object selected. Please select an object before sending a message.');
@@ -313,11 +218,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const requestBody = {
                 message: message,
                 object: currentSoundType,
-                age: parseInt(ageSelect.value)
+                age: parseInt(ageSelect.value),
+                is_initial_greeting: isInitialGreeting
             };
             
-            console.log('Request body:', JSON.stringify(requestBody));
-
             const response = await fetch('/generate-response', {
                 method: 'POST',
                 headers: {
@@ -325,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify(requestBody),
             });
-            console.log(response);
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -333,44 +236,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
-            console.log('Received response from server:', data);
-            playAIResponse(data.text, data.audio_url);
+            await playAIResponse(data.text, data.audio_url);
+            
+            if (isInitialGreeting) {
+                startContinuousListening();
+            }
         } catch (error) {
             console.error('Error in sendMessageToAI:', error);
             alert(`An error occurred while processing your message: ${error.message}. Please try again.`);
+            listeningStatus.textContent = "Click to speak";
         }
     }
 
     async function playAIResponse(text, audioUrl) {
-        console.log('Playing AI response:', text, audioUrl);
-        const responseModal = document.createElement('div');
-        responseModal.innerHTML = `
-            <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="ai-response-modal">
-                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                    <div class="mt-3 text-center">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">${currentSoundType}'s Response</h3>
-                        <div class="mt-2 px-7 py-3">
-                            <p id="ai-response-text" class="text-sm text-gray-500">${text}</p>
-                        </div>
-                        <div class="items-center px-4 py-3">
-                            <button id="close-response-btn" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(responseModal);
-
-        document.getElementById('close-response-btn').addEventListener('click', () => {
-            document.body.removeChild(responseModal);
-        });
-
+        listeningStatus.textContent = "AI is speaking...";
+        
         try {
             const audio = new Audio(audioUrl);
             await audio.play();
-            console.log('Audio playback started');
 
             const source = audioContext.createMediaElementSource(audio);
             analyser = audioContext.createAnalyser();
@@ -384,13 +267,17 @@ document.addEventListener('DOMContentLoaded', () => {
             drawVisualizer();
 
             audio.onended = () => {
-                console.log('Audio playback ended');
                 cancelAnimationFrame(animationId);
                 canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                listeningStatus.textContent = "Click to speak";
+                if (recognition) {
+                    recognition.start();
+                }
             };
         } catch (error) {
             console.error('Error playing audio:', error);
             alert('An error occurred while playing the audio. Please try again.');
+            listeningStatus.textContent = "Click to speak";
         }
     }
 

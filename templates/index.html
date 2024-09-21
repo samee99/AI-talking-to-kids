@@ -70,6 +70,7 @@
         <div class="visualizer-container">
             <canvas id="visualizer" class="rounded-lg shadow-lg"></canvas>
         </div>
+        <div class="text-white text-2xl mt-4" id="listening-status"></div>
         <div class="flex space-x-8 mt-8">
             <button class="call-button" id="audio-button">
                 <img src="{{ url_for('static', filename='images/audio-icon.svg') }}" alt="Audio" class="w-12 h-12">
@@ -82,10 +83,6 @@
             <button class="call-button" id="mute-button">
                 <img src="{{ url_for('static', filename='images/mute-icon.svg') }}" alt="Mute" class="w-12 h-12">
                 <span>Mute</span>
-            </button>
-            <button class="call-button" id="talk-back-button">
-                <img src="{{ url_for('static', filename='images/talk-back-icon.svg') }}" alt="Talk Back" class="w-12 h-12">
-                <span>Talk Back</span>
             </button>
         </div>
         <button class="mt-8 bg-red-600 text-white px-8 py-3 rounded-full text-xl" id="end-call-button">End</button>

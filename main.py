@@ -162,14 +162,12 @@ def generate_response():
     user_message = data.get('message')
     object_name = data.get('object')
     age = data.get('age')
+    is_initial_greeting = data.get('is_initial_greeting', False)
 
     logger.info(
-        f"Extracted data: message={user_message}, object={object_name}, age={age}"
+        f"Extracted data: message={user_message}, object={object_name}, age={age}, is_initial_greeting={is_initial_greeting}"
     )
 
-    if not user_message:
-        logger.error("Missing required field: message")
-        return jsonify({"error": "Missing required field: message"}), 400
     if not object_name:
         logger.error("Missing required field: object")
         return jsonify({"error": "Missing required field: object"}), 400
@@ -178,15 +176,18 @@ def generate_response():
         return jsonify({"error": "Missing required field: age"}), 400
 
     # Generate AI response using OpenAI
-    prompt = f"You are {object_name} talking to a {age}-year-old child. The child says: '{user_message}'. Respond in a friendly, educational manner appropriate for their age, in 50 words or less."
-    print(prompt)
+    if is_initial_greeting:
+        prompt = f"You are {object_name} greeting a {age}-year-old child. Introduce yourself and ask how you can help them today. Keep your response friendly, educational, and appropriate for their age, in 50 words or less."
+    else:
+        prompt = f"You are {object_name} talking to a {age}-year-old child. The child says: '{user_message}'. Respond in a friendly, educational manner appropriate for their age, in 50 words or less."
+
     try:
         logger.info(f"Sending request to OpenAI: prompt={prompt}")
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": user_message}
+                {"role": "user", "content": user_message if not is_initial_greeting else ""}
             ]
         )
         ai_response = response.choices[0].message.content
