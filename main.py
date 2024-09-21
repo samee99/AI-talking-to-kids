@@ -179,17 +179,17 @@ def generate_response():
 
     try:
         logger.info(f"Sending request to OpenAI: prompt={prompt}")
-        response = openai.ChatCompletion.create(model="gpt-4o-mini",
-                                                messages=[{
-                                                    "role": "system",
-                                                    "content": prompt
-                                                }, {
-                                                    "role":
-                                                    "user",
-                                                    "content":
-                                                    user_message
-                                                }])
-        ai_response = response.choices[0].message.content.strip()
+        response = openai.chat.completions.create(model="gpt-4o-mini",
+                                                  messages=[{
+                                                      "role": "system",
+                                                      "content": prompt
+                                                  }, {
+                                                      "role":
+                                                      "user",
+                                                      "content":
+                                                      user_message
+                                                  }])
+        ai_response = completion.choices[0].response
         logger.info(f"Received response from OpenAI: {ai_response}")
 
         # Generate audio using ElevenLabs

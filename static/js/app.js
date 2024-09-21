@@ -280,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify(requestBody),
             });
+            console.log(response);
 
             if (!response.ok) {
                 const errorData = await response.json();
