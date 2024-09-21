@@ -30,36 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSoundType = null;
     let isUserSignedIn = false;
     let recognition = null;
-    let beepSound = null;
     let recognitionState = 'idle';
-
-    fetch('/static/sounds/beep.mp3')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Beep sound file not found');
-            }
-            return response.arrayBuffer();
-        })
-        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-        .then(audioBuffer => {
-            beepSound = audioBuffer;
-            console.log('Beep sound loaded successfully');
-        })
-        .catch(error => console.error('Error loading beep sound:', error));
-
-    function playBeep() {
-        console.log('playBeep function called');
-        if (beepSound) {
-            console.log('Beep sound is available, playing...');
-            const source = audioContext.createBufferSource();
-            source.buffer = beepSound;
-            source.connect(audioContext.destination);
-            source.start();
-            console.log('Beep sound played');
-        } else {
-            console.log('Beep sound is not available');
-        }
-    }
 
     function resizeCanvas() {
         canvas.width = canvas.clientWidth;
@@ -277,23 +248,17 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Recognition ended. Current state:', recognitionState);
             if (!callOverlay.classList.contains('hidden') && recognitionState !== 'processing') {
                 recognitionState = 'idle';
-                playBeep();
                 setTimeout(() => {
                     if (recognitionState === 'idle') {
                         recognition.start();
                     }
-                }, 500);
+                }, 100);
             } else {
                 recognitionState = 'idle';
             }
         };
 
-        playBeep();
-        setTimeout(() => {
-            if (recognitionState === 'idle') {
-                recognition.start();
-            }
-        }, 500);
+        recognition.start();
     }
 
     async function sendMessageToAI(message, isInitialGreeting = false) {
@@ -335,11 +300,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isInitialGreeting) {
                 startContinuousListening();
             } else {
-                setTimeout(() => {
-                    if (recognition && recognitionState === 'idle') {
-                        recognition.start();
-                    }
-                }, 500);
+                if (recognition && recognitionState === 'idle') {
+                    recognition.start();
+                }
             }
         } catch (error) {
             console.error('Error in sendMessageToAI:', error);
@@ -370,10 +333,9 @@ document.addEventListener('DOMContentLoaded', () => {
             audio.onended = () => {
                 cancelAnimationFrame(animationId);
                 canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-                listeningStatus.textContent = "Click to speak";
+                listeningStatus.textContent = "Listening...";
                 if (recognition) {
-                    playBeep();
-                    setTimeout(() => recognition.start(), 500);
+                    recognition.start();
                 }
             };
         } catch (error) {
@@ -381,8 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('An error occurred while playing the audio. Please try again.');
             listeningStatus.textContent = "Click to speak";
             if (recognition) {
-                playBeep();
-                setTimeout(() => recognition.start(), 500);
+                recognition.start();
             }
         }
     }
