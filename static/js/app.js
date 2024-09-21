@@ -124,7 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawVisualizer() {
-        if (callOverlay.classList.contains('hidden')) {
+        if (callOverlay.classList.contains('hidden') || !analyser) {
+            console.log('Analyser not initialized or call overlay is hidden');
             return;
         }
 
@@ -198,6 +199,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function playBeep() {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // 880 Hz (A5)
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1); // 100ms duration
+    }
+
     async function startContinuousListening() {
         if (!('webkitSpeechRecognition' in window)) {
             alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
@@ -223,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recognitionState = 'listening';
             listeningStatus.textContent = "Listening...";
             console.log('Recognition started');
+            playBeep(); // Play beep sound when recognition starts
         };
 
         recognition.onresult = (event) => {
@@ -334,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 cancelAnimationFrame(animationId);
                 canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
                 listeningStatus.textContent = "Listening...";
-                if (recognition) {
+                if (recognition && recognitionState === 'idle') {
                     recognition.start();
                 }
             };
@@ -342,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error playing audio:', error);
             alert('An error occurred while playing the audio. Please try again.');
             listeningStatus.textContent = "Click to speak";
-            if (recognition) {
+            if (recognition && recognitionState === 'idle') {
                 recognition.start();
             }
         }
