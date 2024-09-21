@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tree: { file: 'tree', image: new Image() }
     };
 
-    // Load images
     for (const [key, value] of Object.entries(sounds)) {
         value.image.src = `/static/images/${key}.jpg`;
     }
@@ -118,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const centerY = canvas.height / 2;
         const radius = Math.min(centerX, centerY) * 0.6;
 
-        // Draw the image
         const image = sounds[currentSoundType].image;
         const imageSize = radius * 2;
         canvasCtx.save();
@@ -128,7 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasCtx.drawImage(image, centerX - radius, centerY - radius, imageSize, imageSize);
         canvasCtx.restore();
 
-        // Draw visualizer lines
         for (let i = 0; i < dataArray.length; i++) {
             const angle = (i / dataArray.length) * 2 * Math.PI;
             const length = (dataArray[i] / 255) * radius * 0.5;
@@ -170,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     talkBackButton.addEventListener('click', () => {
-        // Check if user is signed in
         fetch('/check-auth')
             .then(response => response.json())
             .then(data => {
@@ -261,16 +257,23 @@ document.addEventListener('DOMContentLoaded', () => {
     async function sendMessageToAI(message) {
         try {
             console.log('Sending message to AI:', message);
+            console.log('Current sound type:', currentSoundType);
+            console.log('Selected age:', ageSelect.value);
+            
+            const requestBody = {
+                message: message,
+                object: currentSoundType,
+                age: parseInt(ageSelect.value)
+            };
+            
+            console.log('Request body:', JSON.stringify(requestBody));
+
             const response = await fetch('/generate-response', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    message: message,
-                    object: currentSoundType,
-                    age: parseInt(ageSelect.value)
-                }),
+                body: JSON.stringify(requestBody),
             });
 
             if (!response.ok) {
@@ -289,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function playAIResponse(text, audioUrl) {
         console.log('Playing AI response:', text, audioUrl);
-        // Display AI response text
         const responseModal = document.createElement('div');
         responseModal.innerHTML = `
             <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="ai-response-modal">
@@ -314,13 +316,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.removeChild(responseModal);
         });
 
-        // Play AI response audio
         try {
             const audio = new Audio(audioUrl);
             await audio.play();
             console.log('Audio playback started');
 
-            // Set up visualizer for AI response audio
             const source = audioContext.createMediaElementSource(audio);
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;

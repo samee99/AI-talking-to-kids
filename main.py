@@ -132,13 +132,23 @@ def generate_response():
         return jsonify({"error": "User not authenticated"}), 401
 
     data = request.json
+    logger.info(f"Received data: {data}")
+
     user_message = data.get('message')
     object_name = data.get('object')
     age = data.get('age')
 
-    if not all([user_message, object_name, age]):
-        logger.error(f"Missing required data: message={user_message}, object={object_name}, age={age}")
-        return jsonify({"error": "Missing required data"}), 400
+    logger.info(f"Extracted data: message={user_message}, object={object_name}, age={age}")
+
+    if not user_message:
+        logger.error("Missing required field: message")
+        return jsonify({"error": "Missing required field: message"}), 400
+    if not object_name:
+        logger.error("Missing required field: object")
+        return jsonify({"error": "Missing required field: object"}), 400
+    if not age:
+        logger.error("Missing required field: age")
+        return jsonify({"error": "Missing required field: age"}), 400
 
     # Generate AI response using OpenAI
     prompt = f"You are {object_name} talking to a {age}-year-old child. The child says: '{user_message}'. Respond in a friendly, educational manner appropriate for their age, in 50 words or less."
