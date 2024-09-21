@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const callObjectName = document.getElementById('call-object-name');
     const endCallButton = document.getElementById('end-call-button');
     const talkBackButton = document.getElementById('talk-back-button');
+    const startSpeakingButton = document.getElementById('start-speaking-button');
 
     const sounds = {
         moon: { file: 'moon', image: new Image() },
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let callStartTime = null;
     let callTimerInterval = null;
     let currentSoundType = null;
+    let isUserSignedIn = false;
 
     function resizeCanvas() {
         canvas.width = canvas.clientWidth;
@@ -62,6 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSoundType = soundType;
         console.log('Current sound type set in showCallOverlay:', currentSoundType);
         drawVisualizer();
+
+        if (isUserSignedIn) {
+            talkBackButton.classList.add('hidden');
+            startSpeakingButton.classList.remove('hidden');
+        } else {
+            talkBackButton.classList.remove('hidden');
+            startSpeakingButton.classList.add('hidden');
+        }
     }
 
     function hideCallOverlay() {
@@ -70,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         callTimer.textContent = '00:00';
         cancelAnimationFrame(animationId);
         canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-        // Do not reset currentSoundType here
     }
 
     async function playSound(soundType) {
@@ -179,6 +188,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     showAuthModal();
                 }
             });
+    });
+
+    startSpeakingButton.addEventListener('click', () => {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
+            return;
+        }
+
+        const recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => {
+            startSpeakingButton.textContent = "Listening...";
+            startSpeakingButton.disabled = true;
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            sendMessageToAI(transcript);
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error", event.error);
+            startSpeakingButton.textContent = "Start Speaking";
+            startSpeakingButton.disabled = false;
+        };
+
+        recognition.onend = () => {
+            startSpeakingButton.textContent = "Start Speaking";
+            startSpeakingButton.disabled = false;
+        };
+
+        recognition.start();
     });
 
     function showAuthModal() {
@@ -350,4 +393,16 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('An error occurred while playing the audio. Please try again.');
         }
     }
+
+    // Check if the user is signed in when the page loads
+    fetch('/check-auth')
+        .then(response => response.json())
+        .then(data => {
+            isUserSignedIn = data.authenticated;
+            if (isUserSignedIn) {
+                console.log(`User is signed in as: ${data.username}`);
+            } else {
+                console.log('User is not signed in');
+            }
+        });
 });
