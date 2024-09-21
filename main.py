@@ -1,3 +1,4 @@
+
 import os
 import logging
 from flask import Flask, render_template, send_from_directory, request, jsonify, redirect, url_for, session, flash
@@ -173,16 +174,17 @@ def generate_response():
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": user_message}
-            ])
+            ]
+        )
         ai_response = response.choices[0].message.content
         logger.info(f"Received response from OpenAI: {ai_response}")
         logger.info(f"Generating audio with ElevenLabs: text={ai_response}")
 
         # Generate audio using ElevenLabs
-        audio = generate(
-            text=ai_response,
-            voice=Voice(voice_id="pNInz6obpgDQGcFmaJgB", name="Adam"),
-            model="eleven_monolingual_v1")
+        audio = generate(text=ai_response,
+                         voice=Voice(voice_id="pNInz6obpgDQGcFmaJgB",
+                                     name="Adam"),
+                         model="eleven_monolingual_v1")
 
         # Save audio to a temporary file
         temp_audio_path = os.path.join('static', 'temp',
