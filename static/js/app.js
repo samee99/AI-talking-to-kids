@@ -216,9 +216,26 @@ document.addEventListener('DOMContentLoaded', () => {
         hideCallOverlay();
     });
 
-    function startContinuousListening() {
+    async function checkMicrophonePermission() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            return true;
+        } catch (err) {
+            console.error('Error accessing microphone:', err);
+            return false;
+        }
+    }
+
+    async function startContinuousListening() {
         if (!('webkitSpeechRecognition' in window)) {
             alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
+            return;
+        }
+
+        const hasMicrophonePermission = await checkMicrophonePermission();
+        if (!hasMicrophonePermission) {
+            alert("Unable to access the microphone. Please make sure you've granted microphone permissions to this website in your browser settings.");
             return;
         }
 
@@ -247,7 +264,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onerror = (event) => {
             console.error("Speech recognition error", event.error);
-            listeningStatus.textContent = "Click to speak";
+            if (event.error === 'audio-capture') {
+                listeningStatus.textContent = "Microphone access denied. Please check your browser settings.";
+                alert("Unable to access the microphone. Please make sure you've granted microphone permissions to this website in your browser settings.");
+            } else {
+                listeningStatus.textContent = "Click to speak";
+            }
             recognitionState = 'idle';
         };
 
