@@ -18,17 +18,14 @@ logger = logging.getLogger(__name__)
 
 # Set up ElevenLabs API
 set_api_key(os.environ.get("ELEVENLABS_API_KEY"))
-
 # Set up OpenAI API
 openai.api_key = os.environ.get("OPENAI_API_KEY")
-
 
 # Database setup
 def get_db():
     db = sqlite3.connect('users.db')
     db.row_factory = sqlite3.Row
     return db
-
 
 def init_db():
     with app.app_context():
@@ -37,7 +34,6 @@ def init_db():
             'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)'
         )
         db.commit()
-
 
 init_db()
 
@@ -65,7 +61,6 @@ for sound in sound_files:
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         copy(src, dst)
 
-
 @app.route("/")
 def index():
     user = None
@@ -75,18 +70,15 @@ def index():
                           (session['user_id'], )).fetchone()
     return render_template("index.html", user=user)
 
-
 @app.route('/static/sounds/<path:filename>')
 def serve_sound(filename):
     return send_from_directory('static/sounds', filename)
-
 
 @app.route('/check-auth')
 def check_auth():
     if 'user_id' in session:
         return jsonify({"authenticated": True})
     return jsonify({"authenticated": False})
-
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -114,7 +106,6 @@ def signup():
 
     return render_template('signup.html')
 
-
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
     if request.method == 'POST':
@@ -139,12 +130,10 @@ def signin():
 
     return render_template('signin.html')
 
-
 @app.route('/signout')
 def signout():
     session.clear()
     return redirect(url_for('index'))
-
 
 @app.route('/generate-response', methods=['POST'])
 def generate_response():
@@ -176,28 +165,24 @@ def generate_response():
 
     # Generate AI response using OpenAI
     prompt = f"You are {object_name} talking to a {age}-year-old child. The child says: '{user_message}'. Respond in a friendly, educational manner appropriate for their age, in 50 words or less."
-
+    print(prompt)
     try:
         logger.info(f"Sending request to OpenAI: prompt={prompt}")
-        response = openai.chat.completions.create(model="gpt-4o-mini",
-                                                  messages=[{
-                                                      "role": "system",
-                                                      "content": prompt
-                                                  }, {
-                                                      "role":
-                                                      "user",
-                                                      "content":
-                                                      user_message
-                                                  }])
-        ai_response = response.choices[0].message
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": user_message}
+            ])
+        ai_response = response.choices[0].message.content
         logger.info(f"Received response from OpenAI: {ai_response}")
+        logger.info(f"Generating audio with ElevenLabs: text={ai_response}")
 
         # Generate audio using ElevenLabs
-        voice = Voice(voice_id="21m00Tcm4TlvDq8ikWAM", name="Rachel")
-        logger.info(f"Generating audio with ElevenLabs: text={ai_response}")
-        audio = generate(text=ai_response,
-                         voice=voice,
-                         model="eleven_monolingual_v1")
+        audio = generate(
+            text=ai_response,
+            voice=Voice(voice_id="pNInz6obpgDQGcFmaJgB", name="Adam"),
+            model="eleven_monolingual_v1")
 
         # Save audio to a temporary file
         temp_audio_path = os.path.join('static', 'temp',
@@ -215,7 +200,6 @@ def generate_response():
     except Exception as e:
         logger.error(f"Error in generate_response: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
