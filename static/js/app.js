@@ -30,6 +30,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSoundType = null;
     let isUserSignedIn = false;
     let recognition = null;
+    let beepSound = null;
+
+    // Load beep sound
+    fetch('/static/sounds/beep.mp3')
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+            beepSound = audioBuffer;
+        })
+        .catch(error => console.error('Error loading beep sound:', error));
+
+    function playBeep() {
+        if (beepSound) {
+            const source = audioContext.createBufferSource();
+            source.buffer = beepSound;
+            source.connect(audioContext.destination);
+            source.start();
+        }
+    }
 
     function resizeCanvas() {
         canvas.width = canvas.clientWidth;
@@ -255,7 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
                 listeningStatus.textContent = "Click to speak";
                 if (recognition) {
-                    recognition.start();
+                    playBeep();
+                    setTimeout(() => recognition.start(), 500);
                 }
             };
         } catch (error) {
@@ -263,7 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('An error occurred while playing the audio. Please try again.');
             listeningStatus.textContent = "Click to speak";
             if (recognition) {
-                recognition.start();
+                playBeep();
+                setTimeout(() => recognition.start(), 500);
             }
         }
     }
@@ -295,11 +316,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onend = () => {
             if (!callOverlay.classList.contains('hidden')) {
-                recognition.start();
+                playBeep();
+                setTimeout(() => recognition.start(), 500);
             }
         };
 
-        recognition.start();
+        playBeep();
+        setTimeout(() => recognition.start(), 500);
     }
 
     checkUserAuthentication().then((authenticated) => {
