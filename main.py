@@ -7,6 +7,7 @@ import sqlite3
 from elevenlabs import generate, set_api_key, Voice
 import openai
 from flask_cors import CORS
+from google.cloud import speech
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)
@@ -27,6 +28,9 @@ else:
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 if not openai.api_key:
     logger.warning("OPENAI_API_KEY not found in environment variables")
+
+# Set up Google Cloud Speech-to-Text client
+speech_client = speech.SpeechClient()
 
 # Database setup
 def get_db():
@@ -224,6 +228,81 @@ def generate_response():
 
     except Exception as e:
         logger.error(f"Error in generate_response: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/process-audio', methods=['POST'])
+def process_audio():
+    if 'user_id' not in session:
+        logger.warning("Unauthenticated user tried to access process-audio")
+        return jsonify({"error": "User not authenticated"}), 401
+
+    if 'audio' not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio_file = request.files['audio']
+    object_name = request.form.get('object')
+    age = request.form.get('age')
+
+    if not audio_file or not object_name or not age:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    try:
+        # Save the audio file temporarily
+        temp_audio_path = os.path.join('static', 'temp', 'temp_audio.wav')
+        audio_file.save(temp_audio_path)
+
+        # Perform speech recognition
+        with open(temp_audio_path, 'rb') as audio_file:
+            content = audio_file.read()
+
+        audio = speech.RecognitionAudio(content=content)
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=44100,
+            language_code="en-US",
+        )
+
+        response = speech_client.recognize(config=config, audio=audio)
+
+        # Get the transcription
+        transcript = ""
+        for result in response.results:
+            transcript += result.alternatives[0].transcript
+
+        # Generate AI response
+        system_message = f"You are {object_name} talking to a {age}-year-old child. Respond in a friendly, educational manner appropriate for their age, in 50 words or less. Maintain context from previous messages."
+        
+        ai_response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": transcript}
+            ]
+        ).choices[0].message.content
+
+        # Generate audio using ElevenLabs
+        audio = generate(
+            text=ai_response,
+            voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL", name="Bella"),
+            model="eleven_monolingual_v1"
+        )
+
+        # Save audio to a temporary file
+        temp_audio_path = os.path.join('static', 'temp', f"{object_name}_response.mp3")
+        os.makedirs(os.path.dirname(temp_audio_path), exist_ok=True)
+        with open(temp_audio_path, "wb") as f:
+            if isinstance(audio, bytes):
+                f.write(audio)
+            else:
+                f.write(b''.join(audio))
+
+        return jsonify({
+            "text": ai_response,
+            "audio_url": f"/static/temp/{object_name}_response.mp3"
+        })
+
+    except Exception as e:
+        logger.error(f"Error in process_audio: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":

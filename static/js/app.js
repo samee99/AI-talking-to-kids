@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const callObjectName = document.getElementById('call-object-name');
     const endCallButton = document.getElementById('end-call-button');
     const listeningStatus = document.getElementById('listening-status');
+    const recordButton = document.createElement('button');
+    recordButton.id = 'record-button';
+    recordButton.textContent = 'Start Recording';
+    recordButton.style.display = 'none';
 
     const sounds = {
         moon: { file: 'moon', image: new Image() },
@@ -31,6 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let isUserSignedIn = false;
     let recognition = null;
     let recognitionState = 'idle';
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    function isMobileSafari() {
+        return /iPhone|iPad|iPod/i.test(navigator.userAgent) && /WebKit/i.test(navigator.userAgent) && !/(CriOS|FxiOS|OPiOS|mercury)/i.test(navigator.userAgent);
+    }
 
     function resizeCanvas() {
         canvas.width = canvas.clientWidth;
@@ -64,6 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeCanvas();
         currentSoundType = soundType;
         drawVisualizer();
+
+        if (isMobileSafari()) {
+            recordButton.style.display = 'block';
+            callOverlay.appendChild(recordButton);
+        }
     }
 
     function hideCallOverlay() {
@@ -76,6 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
             recognition.stop();
         }
         recognitionState = 'idle';
+        if (isMobileSafari()) {
+            recordButton.style.display = 'none';
+            callOverlay.removeChild(recordButton);
+        }
     }
 
     async function checkUserAuthentication() {
@@ -214,57 +233,109 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function startContinuousListening() {
-        if (!('webkitSpeechRecognition' in window)) {
-            alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
-            return;
-        }
+        if (isMobileSafari()) {
+            // MediaRecorder implementation for mobile Safari
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
 
-        const hasMicrophonePermission = await checkMicrophonePermission();
-        if (!hasMicrophonePermission) {
-            alert("Unable to access the microphone. Please make sure you've granted microphone permissions to this website in your browser settings.");
-            return;
-        }
-
-        if (recognitionState !== 'idle' && recognitionState !== 'waiting') {
-            console.log('Recognition is not ready. Current state:', recognitionState);
-            return;
-        }
-
-        if (!recognition) {
-            recognition = new webkitSpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            recognition.onstart = () => {
-                recognitionState = 'listening';
-                listeningStatus.textContent = "Listening...";
-                console.log('Recognition started');
-                playBeep();
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
             };
 
-            recognition.onresult = (event) => {
-                recognitionState = 'processing';
-                const transcript = event.results[0][0].transcript;
-                listeningStatus.textContent = "Processing...";
-                console.log('Recognition result:', transcript);
-                sendMessageToAI(transcript);
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                await sendAudioToServer(audioBlob);
+                audioChunks = [];
             };
 
-            recognition.onend = () => {
-                console.log('Recognition ended. Current state:', recognitionState);
-                if (recognitionState === 'listening') {
-                    recognitionState = 'idle';
-                    setTimeout(() => {
-                        if (recognitionState === 'idle' && !callOverlay.classList.contains('hidden')) {
-                            recognition.start();
-                        }
-                    }, 1000);
+            recordButton.addEventListener('click', () => {
+                if (mediaRecorder.state === 'inactive') {
+                    mediaRecorder.start();
+                    recordButton.textContent = 'Stop Recording';
+                    playBeep();
+                } else {
+                    mediaRecorder.stop();
+                    recordButton.textContent = 'Start Recording';
                 }
-            };
-        }
+            });
+        } else {
+            // Existing Web Speech API implementation
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
+                return;
+            }
 
-        if (recognitionState === 'idle' || recognitionState === 'waiting') {
-            recognition.start();
+            const hasMicrophonePermission = await checkMicrophonePermission();
+            if (!hasMicrophonePermission) {
+                alert("Unable to access the microphone. Please make sure you've granted microphone permissions to this website in your browser settings.");
+                return;
+            }
+
+            if (recognitionState !== 'idle' && recognitionState !== 'waiting') {
+                console.log('Recognition is not ready. Current state:', recognitionState);
+                return;
+            }
+
+            if (!recognition) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onstart = () => {
+                    recognitionState = 'listening';
+                    listeningStatus.textContent = "Listening...";
+                    console.log('Recognition started');
+                    playBeep();
+                };
+
+                recognition.onresult = (event) => {
+                    recognitionState = 'processing';
+                    const transcript = event.results[0][0].transcript;
+                    listeningStatus.textContent = "Processing...";
+                    console.log('Recognition result:', transcript);
+                    sendMessageToAI(transcript);
+                };
+
+                recognition.onend = () => {
+                    console.log('Recognition ended. Current state:', recognitionState);
+                    if (recognitionState === 'listening') {
+                        recognitionState = 'idle';
+                        setTimeout(() => {
+                            if (recognitionState === 'idle' && !callOverlay.classList.contains('hidden')) {
+                                recognition.start();
+                            }
+                        }, 1000);
+                    }
+                };
+            }
+
+            if (recognitionState === 'idle' || recognitionState === 'waiting') {
+                recognition.start();
+            }
+        }
+    }
+
+    async function sendAudioToServer(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.wav');
+        formData.append('object', currentSoundType);
+        formData.append('age', ageSelect.value);
+
+        try {
+            const response = await fetch('/process-audio', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            await playAIResponse(data.text, data.audio_url);
+        } catch (error) {
+            console.error('Error sending audio to server:', error);
+            alert(`An error occurred while processing your audio: ${error.message}. Please try again.`);
         }
     }
 
