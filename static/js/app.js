@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     recordButton.id = 'record-button';
     recordButton.textContent = 'Start Recording';
     recordButton.style.display = 'none';
+    const testCallOverlayButton = document.getElementById('test-call-overlay');
 
     const sounds = {
         moon: { file: 'moon', image: new Image() },
@@ -212,6 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAudio.stop();
         }
         hideCallOverlay();
+    });
+
+    testCallOverlayButton.addEventListener('click', () => {
+        showCallOverlay('Test');
     });
 
     async function checkMicrophonePermission() {

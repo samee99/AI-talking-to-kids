@@ -44,34 +44,41 @@
                 </div>
                 {% endfor %}
             </div>
+            
+            <!-- Add a test button to show the call overlay -->
+            <div class="flex justify-center">
+                <button id="test-call-overlay" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300">
+                    Test Call Overlay
+                </button>
+            </div>
         </div>
     </main>
 
-    <div id="call-overlay" class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-        <div class="w-full max-w-md text-center text-white">
-            <div class="mb-8">
-                <div id="call-timer" class="text-2xl font-light mb-2">00:00</div>
+    <div id="call-overlay" class="hidden fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50">
+        <div class="text-center text-white">
+            <div class="mb-4">
+                <div id="call-timer" class="text-2xl font-light">00:00</div>
                 <div id="call-object-name" class="text-4xl font-semibold"></div>
             </div>
             <div class="visualizer-container mb-8">
                 <canvas id="visualizer"></canvas>
             </div>
-            <div id="listening-status" class="text-xl mb-8">Click to speak</div>
-            <div class="call-buttons-container">
+            <div id="listening-status" class="text-xl mb-4">Click to speak</div>
+            <div class="flex justify-center space-x-8 mb-8">
                 <button id="audio-button" class="call-button">
-                    <img src="{{ url_for('static', filename='images/audio-icon.svg') }}" alt="Audio" class="w-8 h-8 mb-2">
+                    <img src="{{ url_for('static', filename='images/audio-icon.svg') }}" alt="Audio" class="w-8 h-8 mb-1">
                     <span>Audio</span>
                 </button>
                 <button id="facetime-button" class="call-button">
-                    <img src="{{ url_for('static', filename='images/facetime-icon.svg') }}" alt="FaceTime" class="w-8 h-8 mb-2">
+                    <img src="{{ url_for('static', filename='images/facetime-icon.svg') }}" alt="FaceTime" class="w-8 h-8 mb-1">
                     <span>FaceTime</span>
                 </button>
                 <button id="mute-button" class="call-button">
-                    <img src="{{ url_for('static', filename='images/mute-icon.svg') }}" alt="Mute" class="w-8 h-8 mb-2">
+                    <img src="{{ url_for('static', filename='images/mute-icon.svg') }}" alt="Mute" class="w-8 h-8 mb-1">
                     <span>Mute</span>
                 </button>
             </div>
-            <button id="end-call-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full transition duration-300 mt-8">
+            <button id="end-call-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition duration-300">
                 End Call
             </button>
         </div>
