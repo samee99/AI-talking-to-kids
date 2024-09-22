@@ -1,0 +1,11 @@
+
+DEBUG:openai._base_client:HTTP Response: POST https://api.openai.com/v1/chat/completions "200 OK" Headers({'date': 'Sun, 22 Sep 2024 05:50:46 GMT', 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'connection': 'keep-alive', 'access-control-expose-headers': 'X-Request-ID', 'openai-organization': 'engineray-kwexmb', 'openai-processing-ms': '538', 'openai-version': '2020-10-01', 'strict-transport-security': 'max-age=15552000; includeSubDomains; preload', 'x-ratelimit-limit-requests': '10000', 'x-ratelimit-limit-tokens': '200000', 'x-ratelimit-remaining-requests': '9999', 'x-ratelimit-remaining-tokens': '199927', 'x-ratelimit-reset-requests': '8.64s', 'x-ratelimit-reset-tokens': '21ms', 'x-request-id': 'req_a8a1a093e248730a3ffcc4fd25579b26', 'cf-cache-status': 'DYNAMIC', 'x-content-type-options': 'nosniff', 'server': 'cloudflare', 'cf-ray': '8c7004ed38e7070b-ATL', 'content-encoding': 'gzip'})
+DEBUG:openai._base_client:request_id: req_a8a1a093e248730a3ffcc4fd25579b26
+INFO:__main__:Received response from OpenAI: Sure! The moon's surface is like a big, rocky playground! It has lots of craters from space rocks, like bumps and holes. There are also smooth, dark areas called "maria," which means "seas," even though they're not water. It's super cool to explore, isn't it?
+INFO:__main__:Generating audio with ElevenLabs: text=Sure! The moon's surface is like a big, rocky playground! It has lots of craters from space rocks, like bumps and holes. There are also smooth, dark areas called "maria," which means "seas," even though they're not water. It's super cool to explore, isn't it?
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): api.elevenlabs.io:443
+DEBUG:urllib3.connectionpool:https://api.elevenlabs.io:443 "POST /v1/text-to-speech/EXAVITQu4vr4xnSDxMaL HTTP/11" 200 283794
+INFO:__main__:Audio saved to static/temp/moon_response.mp3
+INFO:werkzeug:172.31.196.15 - - [22/Sep/2024 05:50:50] "POST /generate-response HTTP/1.1" 200 -
+INFO:werkzeug:172.31.196.15 - - [22/Sep/2024 05:50:52] "GET /static/temp/moon_response.mp3?t=1726984250679 HTTP/1.1" 206 -
+INFO:werkzeug:172.31.196.15 - - [22/Sep/2024 05:50:53] "GET /static/temp/moon_response.mp3?t=1726984250679 HTTP/1.1" 206 -

@@ -417,57 +417,102 @@ document.addEventListener('DOMContentLoaded', () => {
         recognitionState = 'waiting';
         listeningStatus.textContent = "AI is speaking...";
 
-        try {
-            await new Promise(resolve => setTimeout(resolve, 500));
+        let retryCount = 0;
+        const maxRetries = 3;
 
-            const timestamp = new Date().getTime();
-            const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
+        async function attemptPlayback() {
+            try {
+                await new Promise(resolve => setTimeout(resolve, 500));
 
-            console.log('Playing audio from URL:', uncachedAudioUrl);
+                const timestamp = new Date().getTime();
+                const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
 
-            const audio = new Audio(uncachedAudioUrl);
-            
-            // iOS-specific logging
-            if (isMobileSafari()) {
-                console.log('iOS device detected, setting up audio');
-                audio.addEventListener('canplaythrough', () => console.log('Audio can play through'));
-                audio.addEventListener('error', (e) => console.error('Audio error:', e));
+                console.log('Playing audio from URL:', uncachedAudioUrl);
+
+                if (isMobileSafari()) {
+                    console.log('iOS device detected, using Web Audio API for playback');
+                    const response = await fetch(uncachedAudioUrl);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    const bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+
+                    source.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    source.start();
+
+                    console.log('Audio playback started on iOS');
+                    drawVisualizer();
+
+                    source.onended = handleAudioEnded;
+                } else {
+                    const audio = new Audio(uncachedAudioUrl);
+                    audio.oncanplaythrough = () => {
+                        console.log('Audio can play through');
+                        audio.play().catch(e => {
+                            console.error('Audio play error:', e);
+                            throw e;
+                        });
+                    };
+                    audio.onerror = (e) => {
+                        console.error('Audio error:', e);
+                        throw e;
+                    };
+
+                    await audio.play();
+
+                    console.log('Audio playback started');
+
+                    const source = audioContext.createMediaElementSource(audio);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    const bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+
+                    source.connect(analyser);
+                    analyser.connect(audioContext.destination);
+
+                    drawVisualizer();
+
+                    audio.onended = handleAudioEnded;
+                }
+            } catch (error) {
+                console.error('Error playing audio:', error);
+                retryCount++;
+                if (retryCount < maxRetries) {
+                    console.log(`Retrying playback (attempt ${retryCount + 1} of ${maxRetries})...`);
+                    await attemptPlayback();
+                } else {
+                    throw error;
+                }
             }
-
-            await audio.play();
-
-            console.log('Audio playback started');
-
-            const source = audioContext.createMediaElementSource(audio);
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256;
-            const bufferLength = analyser.frequencyBinCount;
-            dataArray = new Uint8Array(bufferLength);
-
-            source.connect(analyser);
-            analyser.connect(audioContext.destination);
-
-            drawVisualizer();
-
-            audio.onended = () => {
-                console.log('Audio playback ended');
-                cancelAnimationFrame(animationId);
-                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-                listeningStatus.textContent = "Listening...";
-                setTimeout(() => {
-                    if (recognitionState === 'waiting') {
-                        recognitionState = 'idle';
-                        startContinuousListening();
-                    }
-                }, 1000);
-            };
-        } catch (error) {
-            console.error('Error playing audio:', error);
-            alert('An error occurred while playing the audio. Please try again.');
-            listeningStatus.textContent = "Click to speak";
-            recognitionState = 'idle';
-            startContinuousListening();
         }
+
+        try {
+            await attemptPlayback();
+        } catch (error) {
+            console.error('All retry attempts failed:', error);
+            alert('An error occurred while playing the audio. Please try again.');
+            handleAudioEnded();
+        }
+    }
+
+    function handleAudioEnded() {
+        console.log('Audio playback ended');
+        cancelAnimationFrame(animationId);
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        listeningStatus.textContent = "Listening...";
+        setTimeout(() => {
+            if (recognitionState === 'waiting') {
+                recognitionState = 'idle';
+                startContinuousListening();
+            }
+        }, 1000);
     }
 
     checkUserAuthentication().then((authenticated) => {
