@@ -17,13 +17,17 @@ body {
     padding: 0;
     width: 100%;
     height: 100%;
+    transition: transform 0.3s ease;
+}
+
+.sound-button:hover {
+    transform: scale(1.05);
 }
 
 .sound-button img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 8px 8px 0 0;
 }
 
 .call-button {
@@ -33,19 +37,11 @@ body {
     justify-content: center;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    color: #333;
-    font-size: 10px;
+    width: 80px;
+    height: 80px;
+    color: white;
+    font-size: 12px;
     transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
-@media (min-width: 640px) {
-    .call-button {
-        width: 80px;
-        height: 80px;
-        font-size: 12px;
-    }
 }
 
 .call-button:hover {
@@ -54,17 +50,9 @@ body {
 }
 
 .call-button img {
-    width: 30px;
-    height: 30px;
-    margin-bottom: 3px;
-}
-
-@media (min-width: 640px) {
-    .call-button img {
-        width: 40px;
-        height: 40px;
-        margin-bottom: 5px;
-    }
+    width: 40px;
+    height: 40px;
+    margin-bottom: 5px;
 }
 
 #end-call-button {
@@ -77,15 +65,10 @@ body {
 }
 
 .visualizer-container {
-    width: 100%;
-    height: 160px;
+    width: 300px;
+    height: 300px;
     position: relative;
-}
-
-@media (min-width: 640px) {
-    .visualizer-container {
-        height: 200px;
-    }
+    margin: 0 auto;
 }
 
 #visualizer {
@@ -104,5 +87,22 @@ body {
     #ios-warning {
         font-size: 14px;
         padding: 8px;
+    }
+
+    .call-button {
+        width: 60px;
+        height: 60px;
+        font-size: 10px;
+    }
+
+    .call-button img {
+        width: 30px;
+        height: 30px;
+        margin-bottom: 3px;
+    }
+
+    .visualizer-container {
+        width: 200px;
+        height: 200px;
     }
 }

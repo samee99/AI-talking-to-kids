@@ -1,0 +1,90 @@
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
+    <div id="ios-warning" style="display: none; color: red; margin-top: 10px;">
+        For the best experience on iOS, please use the "Request Desktop Site" option in Safari.
+    </div>
+    <div class="container mx-auto px-4">
+        <h1 class="text-3xl font-bold text-center mb-4">The universe talking to my kids</h1>
+        
+        <div class="flex justify-center space-x-4 mb-8">
+            {% if user %}
+                <span class="text-gray-700">Welcome, {{ user['username'] }}!</span>
+                <a href="{{ url_for('signout') }}" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                    Sign Out
+                </a>
+            {% else %}
+                <a href="{{ url_for('signup') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Sign Up
+                </a>
+                <a href="{{ url_for('signin') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Sign In
+                </a>
+            {% endif %}
+        </div>
+        
+        <div class="mb-8">
+            <label for="ageSelect" class="block text-lg font-medium mb-2">Select Age:</label>
+            <select id="ageSelect" class="w-full p-2 border rounded">
+                <option value="5" selected>5 years old</option>
+                <option value="10">10 years old</option>
+            </select>
+            <p class="text-center mt-2">Current age: <span id="ageDisplay">5 years old</span></p>
+        </div>
+        
+        <div class="flex justify-center flex-wrap">
+            <div class="sound-button-container m-4">
+                <button class="sound-button focus:outline-none" data-sound="moon">
+                    <img src="{{ url_for('static', filename='images/moon.jpg') }}" alt="Moon" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
+                </button>
+                <p class="text-center mt-2">Moon</p>
+            </div>
+            <div class="sound-button-container m-4">
+                <button class="sound-button focus:outline-none" data-sound="sun">
+                    <img src="{{ url_for('static', filename='images/sun.jpg') }}" alt="Sun" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
+                </button>
+                <p class="text-center mt-2">Sun</p>
+            </div>
+            <div class="sound-button-container m-4">
+                <button class="sound-button focus:outline-none" data-sound="rock">
+                    <img src="{{ url_for('static', filename='images/rock.jpg') }}" alt="Rock" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
+                </button>
+                <p class="text-center mt-2">Rock</p>
+            </div>
+            <div class="sound-button-container m-4">
+                <button class="sound-button focus:outline-none" data-sound="tree">
+                    <img src="{{ url_for('static', filename='images/tree.jpg') }}" alt="Tree" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
+                </button>
+                <p class="text-center mt-2">Tree</p>
+            </div>
+        </div>
+        <!-- Rest of the HTML content remains unchanged -->
+
+    </div>
+
+    <div id="call-overlay" class="hidden fixed inset-0 flex flex-col items-center justify-center">
+        <div class="text-white text-4xl mb-4" id="call-timer">00:00</div>
+        <div class="text-white text-6xl mb-8" id="call-object-name"></div>
+        <div class="visualizer-container">
+            <canvas id="visualizer" class="rounded-lg shadow-lg"></canvas>
+        </div>
+        <div class="text-white text-2xl mt-4" id="listening-status"></div>
+        <div class="flex space-x-8 mt-8">
+            <button class="call-button" id="audio-button">
+                <img src="{{ url_for('static', filename='images/audio-icon.svg') }}" alt="Audio" class="w-12 h-12">
+                <span>Audio</span>
+            </button>
+            <button class="call-button" id="facetime-button">
+                <img src="{{ url_for('static', filename='images/facetime-icon.svg') }}" alt="FaceTime" class="w-12 h-12">
+                <span>FaceTime</span>
+            </button>
+            <button class="call-button" id="mute-button">
+                <img src="{{ url_for('static', filename='images/mute-icon.svg') }}" alt="Mute" class="w-12 h-12">
+                <span>Mute</span>
+            </button>
+        </div>
+        <button class="mt-8 bg-red-600 text-white px-8 py-3 rounded-full text-xl" id="end-call-button">End</button>
+        <!-- Call overlay content remains unchanged -->
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
