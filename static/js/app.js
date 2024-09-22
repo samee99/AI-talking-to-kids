@@ -122,8 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const isUserSignedIn = await checkUserAuthentication();
         const age = parseInt(ageSelect.value);
 
+        showCallOverlay(soundType);
+
         if (isUserSignedIn) {
-            showCallOverlay(soundType);
             await sendMessageToAI("Hello", true);
         } else {
             const audioBuffer = await loadSound(soundType, age);
@@ -141,8 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentAudio = source;
             currentSoundType = soundType;
-
-            showCallOverlay(soundType);
 
             source.onended = () => {
                 hideCallOverlay();
