@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     recordButton.id = 'record-button';
     recordButton.textContent = 'Start Recording';
     recordButton.style.display = 'none';
-    const testCallOverlayButton = document.getElementById('test-call-overlay');
 
     const sounds = {
         moon: { file: 'moon', image: new Image() },
@@ -71,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function showCallOverlay(soundType) {
+        console.log(`Showing call overlay for ${soundType}`);
         callOverlay.classList.remove('hidden');
         callObjectName.textContent = soundType.charAt(0).toUpperCase() + soundType.slice(1);
         callStartTime = Date.now();
@@ -191,32 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
             canvasCtx.stroke();
         }
     }
-
-    soundButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            const soundType = button.dataset.sound;
-            playSound(soundType);
-        });
-    });
-
-    ageSelect.addEventListener('change', () => {
-        const age = parseInt(ageSelect.value);
-        document.getElementById('ageDisplay').textContent = `${age} years old`;
-    });
-
-    endCallButton.addEventListener('click', () => {
-        if (currentAudio) {
-            currentAudio.stop();
-        }
-        hideCallOverlay();
-    });
-
-    testCallOverlayButton.addEventListener('click', () => {
-        showCallOverlay('Test');
-    });
 
     async function checkMicrophonePermission() {
         try {
@@ -427,63 +401,55 @@ document.addEventListener('DOMContentLoaded', () => {
             const timestamp = new Date().getTime();
             const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
 
-            console.log('Playing audio from URL:', uncachedAudioUrl);
+            console.log('Attempting to play audio from URL:', uncachedAudioUrl);
 
-            if (isMobileSafari()) {
-                console.log('iOS device detected, using alternative audio playback method');
-                const audio = new Audio(uncachedAudioUrl);
-                audio.play().catch(e => console.error('iOS audio play error:', e));
-                audio.onended = handleAudioEnded;
+            const audio = new Audio();
+            
+            audio.onloadedmetadata = () => {
+                console.log('Audio metadata loaded. Duration:', audio.duration);
+            };
 
-                console.log('Audio playback started');
-                audio.onloadedmetadata = () => console.log('Audio duration:', audio.duration);
-                audio.ontimeupdate = () => console.log('Audio current time:', audio.currentTime);
-
-                const source = audioContext.createMediaElementSource(audio);
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                const bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
-
-                source.connect(analyser);
-                analyser.connect(audioContext.destination);
-
-                drawVisualizer();
-            } else {
-                const audio = new Audio(uncachedAudioUrl);
-                audio.oncanplaythrough = () => {
-                    console.log('Audio can play through');
-                    audio.play().catch(e => {
-                        console.error('Audio play error:', e);
-                        throw e;
-                    });
-                };
-                audio.onerror = (e) => {
-                    console.error('Audio error:', e);
+            audio.oncanplaythrough = () => {
+                console.log('Audio can play through, starting playback');
+                audio.play().catch(e => {
+                    console.error('Error during audio playback:', e);
                     throw e;
-                };
+                });
+            };
 
-                await audio.play();
+            audio.onerror = (e) => {
+                console.error('Audio loading error:', e);
+                throw new Error('Failed to load audio file');
+            };
 
+            audio.onplay = () => {
                 console.log('Audio playback started');
-                console.log('Audio duration:', audio.duration);
-                audio.ontimeupdate = () => console.log('Audio current time:', audio.currentTime);
+            };
 
-                const source = audioContext.createMediaElementSource(audio);
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                const bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
+            audio.ontimeupdate = () => {
+                console.log('Audio current time:', audio.currentTime);
+            };
 
-                source.connect(analyser);
-                analyser.connect(audioContext.destination);
+            audio.onended = () => {
+                console.log('Audio playback completed');
+                handleAudioEnded();
+            };
 
-                drawVisualizer();
+            audio.src = uncachedAudioUrl;
 
-                audio.onended = handleAudioEnded;
-            }
+            const source = audioContext.createMediaElementSource(audio);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            const bufferLength = analyser.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+
+            drawVisualizer();
+
         } catch (error) {
-            console.error('Error playing audio:', error);
+            console.error('Error in playAIResponse:', error);
             alert('An error occurred while playing the audio. Please try again.');
             handleAudioEnded();
         }
@@ -501,6 +467,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 1000);
     }
+
+    soundButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            const soundType = button.dataset.sound;
+            showCallOverlay(soundType);
+            playSound(soundType);
+        });
+    });
+
+    ageSelect.addEventListener('change', () => {
+        const age = parseInt(ageSelect.value);
+        document.getElementById('ageDisplay').textContent = `${age} years old`;
+    });
+
+    endCallButton.addEventListener('click', () => {
+        if (currentAudio) {
+            currentAudio.stop();
+        }
+        hideCallOverlay();
+    });
 
     const iosWarning = document.createElement('div');
     iosWarning.id = 'ios-warning';

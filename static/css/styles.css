@@ -30,6 +30,10 @@ body {
     object-fit: cover;
 }
 
+#call-overlay.hidden {
+    display: none;
+}
+
 #call-overlay {
     display: flex;
     justify-content: center;

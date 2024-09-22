@@ -36,7 +36,7 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
                 {% for sound in ['moon', 'sun', 'rock', 'tree'] %}
-                <div class="sound-button-container bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="sound-button-container m-4 relative overflow-hidden">
                     <button class="sound-button w-full h-full" data-sound="{{ sound }}">
                         <img src="{{ url_for('static', filename='images/' + sound + '.jpg') }}" alt="{{ sound|capitalize }}" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
                     </button>
@@ -47,7 +47,7 @@
         </div>
     </main>
 
-    <div id="call-overlay" class="hidden fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50">
+    <div id="call-overlay" class="hidden fixed inset-0 flex flex-col items-center justify-center">
         <div class="call-content text-center text-white">
             <div class="mb-4">
                 <div id="call-timer" class="text-2xl font-light">00:00</div>
