@@ -272,10 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function sendMessageToAI(message, isInitialGreeting = false) {
         try {
-            if (recognitionState !== 'idle' && !isInitialGreeting) {
-                console.log('Recognition is not idle. Current state:', recognitionState);
-                return;
-            }
+            console.log('Sending message to AI:', message); // Add this line for debugging
 
             listeningStatus.textContent = "AI is thinking...";
 
@@ -306,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             await playAIResponse(data.text, data.audio_url);
 
-            recognitionState = 'waiting';
+            recognitionState = 'waiting'; // Change this line from 'processing' to 'waiting'
             setTimeout(() => {
                 if (recognitionState === 'waiting') {
                     recognitionState = 'idle';
