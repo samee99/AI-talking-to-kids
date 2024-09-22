@@ -12,8 +12,6 @@ elevenlabs = "0.2.24"
 speechrecognition = "^3.10.4"
 openai = "^1.47.0"
 flask-cors = "^5.0.0"
-google-cloud-speech = "^2.27.0"
-
 
 [build-system]
 requires = ["poetry-core"]

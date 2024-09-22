@@ -222,19 +222,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const gainNode = audioContext.createGain();
 
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // 880 Hz (A5)
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
         gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
 
         oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.1); // 100ms duration
+        oscillator.stop(audioContext.currentTime + 0.1);
     }
 
     async function startContinuousListening() {
         if (isMobileSafari()) {
-            // MediaRecorder implementation for mobile Safari
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
 
@@ -259,7 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         } else {
-            // Existing Web Speech API implementation
             if (!('webkitSpeechRecognition' in window)) {
                 alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
                 return;
@@ -393,10 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
         listeningStatus.textContent = "AI is speaking...";
 
         try {
-            // Add a small delay to ensure the audio file is ready
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Add a timestamp to prevent caching
             const timestamp = new Date().getTime();
             const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
 

@@ -7,7 +7,6 @@ import sqlite3
 from elevenlabs import generate, set_api_key, Voice
 import openai
 from flask_cors import CORS
-from google.cloud import speech
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)
@@ -28,9 +27,6 @@ else:
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 if not openai.api_key:
     logger.warning("OPENAI_API_KEY not found in environment variables")
-
-# Set up Google Cloud Speech-to-Text client
-speech_client = speech.SpeechClient()
 
 # Database setup
 def get_db():
@@ -251,23 +247,9 @@ def process_audio():
         temp_audio_path = os.path.join('static', 'temp', 'temp_audio.wav')
         audio_file.save(temp_audio_path)
 
-        # Perform speech recognition
+        # Transcribe audio using Whisper
         with open(temp_audio_path, 'rb') as audio_file:
-            content = audio_file.read()
-
-        audio = speech.RecognitionAudio(content=content)
-        config = speech.RecognitionConfig(
-            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-            sample_rate_hertz=44100,
-            language_code="en-US",
-        )
-
-        response = speech_client.recognize(config=config, audio=audio)
-
-        # Get the transcription
-        transcript = ""
-        for result in response.results:
-            transcript += result.alternatives[0].transcript
+            transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
         # Generate AI response
         system_message = f"You are {object_name} talking to a {age}-year-old child. Respond in a friendly, educational manner appropriate for their age, in 50 words or less. Maintain context from previous messages."
@@ -276,7 +258,7 @@ def process_audio():
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_message},
-                {"role": "user", "content": transcript}
+                {"role": "user", "content": transcript['text']}
             ]
         ).choices[0].message.content
 
