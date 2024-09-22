@@ -13,7 +13,7 @@ CORS(app)
 app.secret_key = os.urandom(24)  # Set a secret key for session management
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Set up ElevenLabs API
@@ -228,32 +228,45 @@ def generate_response():
 
 @app.route('/process-audio', methods=['POST'])
 def process_audio():
+    logger.info("Received request to /process-audio")
     if 'user_id' not in session:
         logger.warning("Unauthenticated user tried to access process-audio")
         return jsonify({"error": "User not authenticated"}), 401
 
+    logger.debug(f"Request headers: {request.headers}")
+    logger.debug(f"Request form data: {request.form}")
+
     if 'audio' not in request.files:
+        logger.error("No audio file provided in the request")
         return jsonify({"error": "No audio file provided"}), 400
 
     audio_file = request.files['audio']
     object_name = request.form.get('object')
     age = request.form.get('age')
 
+    logger.info(f"Received audio file: {audio_file.filename}, Object: {object_name}, Age: {age}")
+
     if not audio_file or not object_name or not age:
+        logger.error("Missing required fields in the request")
         return jsonify({"error": "Missing required fields"}), 400
 
     try:
         # Save the audio file temporarily
         temp_audio_path = os.path.join('static', 'temp', 'temp_audio.wav')
         audio_file.save(temp_audio_path)
+        logger.info(f"Saved temporary audio file: {temp_audio_path}")
 
         # Transcribe audio using Whisper
+        logger.info("Starting audio transcription with Whisper")
         with open(temp_audio_path, 'rb') as audio_file:
             transcript = openai.Audio.transcribe("whisper-1", audio_file)
+
+        logger.info(f"Transcription result: {transcript}")
 
         # Generate AI response
         system_message = f"You are {object_name} talking to a {age}-year-old child. Respond in a friendly, educational manner appropriate for their age, in 50 words or less. Maintain context from previous messages."
         
+        logger.info("Generating AI response")
         ai_response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -262,7 +275,10 @@ def process_audio():
             ]
         ).choices[0].message.content
 
+        logger.info(f"AI response generated: {ai_response}")
+
         # Generate audio using ElevenLabs
+        logger.info("Generating audio with ElevenLabs")
         audio = generate(
             text=ai_response,
             voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL", name="Bella"),
@@ -277,11 +293,14 @@ def process_audio():
                 f.write(audio)
             else:
                 f.write(b''.join(audio))
+        logger.info(f"Audio saved to {temp_audio_path}")
 
-        return jsonify({
+        response_data = {
             "text": ai_response,
             "audio_url": f"/static/temp/{object_name}_response.mp3"
-        })
+        }
+        logger.info(f"Sending response: {response_data}")
+        return jsonify(response_data)
 
     except Exception as e:
         logger.error(f"Error in process_audio: {str(e)}", exc_info=True)

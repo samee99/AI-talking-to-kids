@@ -39,7 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let audioChunks = [];
 
     function isMobileSafari() {
-        return /iPhone|iPad|iPod/i.test(navigator.userAgent) && /WebKit/i.test(navigator.userAgent) && !/(CriOS|FxiOS|OPiOS|mercury)/i.test(navigator.userAgent);
+        const ua = navigator.userAgent;
+        const isIOS = /iPad|iPhone|iPod/.test(ua);
+        const isWebkit = /WebKit/.test(ua);
+        const isNotChrome = !/CriOS/.test(ua);
+        return isIOS && isWebkit && isNotChrome;
     }
 
     function resizeCanvas() {
@@ -234,29 +238,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function startContinuousListening() {
         if (isMobileSafari()) {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
+            console.log('Using MediaRecorder API for iOS');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
 
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                    console.log('Audio chunk received:', event.data.size, 'bytes');
+                };
 
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                await sendAudioToServer(audioBlob);
-                audioChunks = [];
-            };
+                mediaRecorder.onstop = async () => {
+                    console.log('MediaRecorder stopped, sending audio to server');
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    console.log('Audio blob created:', audioBlob.size, 'bytes');
+                    await sendAudioToServer(audioBlob);
+                    audioChunks = [];
+                };
 
-            recordButton.addEventListener('click', () => {
-                if (mediaRecorder.state === 'inactive') {
-                    mediaRecorder.start();
-                    recordButton.textContent = 'Stop Recording';
-                    playBeep();
-                } else {
-                    mediaRecorder.stop();
-                    recordButton.textContent = 'Start Recording';
-                }
-            });
+                recordButton.addEventListener('click', () => {
+                    if (mediaRecorder.state === 'inactive') {
+                        mediaRecorder.start();
+                        console.log('MediaRecorder started');
+                        recordButton.textContent = 'Stop Recording';
+                        playBeep();
+                    } else {
+                        mediaRecorder.stop();
+                        console.log('MediaRecorder stopped');
+                        recordButton.textContent = 'Start Recording';
+                    }
+                });
+            } catch (error) {
+                console.error('Error setting up MediaRecorder:', error);
+                alert('Failed to access the microphone. Please check your browser settings and try again.');
+            }
         } else {
             if (!('webkitSpeechRecognition' in window)) {
                 alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
@@ -314,22 +329,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function sendAudioToServer(audioBlob) {
+        console.log('Preparing to send audio to server');
         const formData = new FormData();
         formData.append('audio', audioBlob, 'recording.wav');
         formData.append('object', currentSoundType);
         formData.append('age', ageSelect.value);
 
+        console.log('FormData created:', formData);
+
         try {
+            console.log('Sending audio to server...');
             const response = await fetch('/process-audio', {
                 method: 'POST',
                 body: formData
             });
+
+            console.log('Server response received:', response.status, response.statusText);
 
             if (!response.ok) {
                 throw new Error(`Server error: ${response.statusText}`);
             }
 
             const data = await response.json();
+            console.log('Server response data:', data);
             await playAIResponse(data.text, data.audio_url);
         } catch (error) {
             console.error('Error sending audio to server:', error);
