@@ -395,61 +395,103 @@ document.addEventListener('DOMContentLoaded', () => {
         recognitionState = 'waiting';
         listeningStatus.textContent = "AI is speaking...";
 
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        const playAudio = async () => {
+            try {
+                console.log(`Attempt ${retryCount + 1} to play audio`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const timestamp = new Date().getTime();
+                const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
+
+                console.log('Attempting to play audio from URL:', uncachedAudioUrl);
+
+                if (isMobileSafari()) {
+                    console.log('iOS device detected, using Web Audio API');
+                    const response = await fetch(uncachedAudioUrl);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    const bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+
+                    source.connect(analyser);
+                    analyser.connect(audioContext.destination);
+
+                    console.log('Starting audio playback on iOS');
+                    source.start();
+
+                    source.onended = handleAudioEnded;
+
+                    drawVisualizer();
+                } else {
+                    const audio = new Audio();
+                    
+                    audio.onloadedmetadata = () => {
+                        console.log('Audio metadata loaded. Duration:', audio.duration);
+                    };
+
+                    audio.oncanplaythrough = () => {
+                        console.log('Audio can play through, starting playback');
+                        audio.play().catch(e => {
+                            console.error('Error during audio playback:', e);
+                            throw e;
+                        });
+                    };
+
+                    audio.onerror = (e) => {
+                        console.error('Audio loading error:', e);
+                        throw new Error('Failed to load audio file');
+                    };
+
+                    audio.onplay = () => {
+                        console.log('Audio playback started');
+                    };
+
+                    audio.ontimeupdate = () => {
+                        console.log('Audio current time:', audio.currentTime);
+                    };
+
+                    audio.onended = handleAudioEnded;
+
+                    audio.src = uncachedAudioUrl;
+
+                    const source = audioContext.createMediaElementSource(audio);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    const bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+
+                    source.connect(analyser);
+                    analyser.connect(audioContext.destination);
+
+                    drawVisualizer();
+                }
+
+                console.log('Audio playback initiated successfully');
+            } catch (error) {
+                console.error(`Error in playAudio (attempt ${retryCount + 1}):`, error);
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    console.log(`Retrying... (${retryCount}/${maxRetries})`);
+                    await playAudio();
+                } else {
+                    throw error;
+                }
+            }
+        };
+
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const timestamp = new Date().getTime();
-            const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
-
-            console.log('Attempting to play audio from URL:', uncachedAudioUrl);
-
-            const audio = new Audio();
-            
-            audio.onloadedmetadata = () => {
-                console.log('Audio metadata loaded. Duration:', audio.duration);
-            };
-
-            audio.oncanplaythrough = () => {
-                console.log('Audio can play through, starting playback');
-                audio.play().catch(e => {
-                    console.error('Error during audio playback:', e);
-                    throw e;
-                });
-            };
-
-            audio.onerror = (e) => {
-                console.error('Audio loading error:', e);
-                throw new Error('Failed to load audio file');
-            };
-
-            audio.onplay = () => {
-                console.log('Audio playback started');
-            };
-
-            audio.ontimeupdate = () => {
-                console.log('Audio current time:', audio.currentTime);
-            };
-
-            audio.onended = () => {
-                console.log('Audio playback completed');
-                handleAudioEnded();
-            };
-
-            audio.src = uncachedAudioUrl;
-
-            const source = audioContext.createMediaElementSource(audio);
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256;
-            const bufferLength = analyser.frequencyBinCount;
-            dataArray = new Uint8Array(bufferLength);
-
-            source.connect(analyser);
-            analyser.connect(audioContext.destination);
-
-            drawVisualizer();
-
+            await playAudio();
         } catch (error) {
-            console.error('Error in playAIResponse:', error);
+            console.error('Error in playAIResponse after all retries:', error);
             alert('An error occurred while playing the audio. Please try again.');
             handleAudioEnded();
         }
