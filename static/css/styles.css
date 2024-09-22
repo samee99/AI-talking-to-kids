@@ -34,7 +34,15 @@ body {
     background-color: rgba(0, 0, 0, 0.9);
 }
 
+.call-buttons-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
 .call-button {
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -45,6 +53,7 @@ body {
     height: 70px;
     color: white;
     font-size: 12px;
+    margin: 0 10px;
     transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
@@ -97,6 +106,7 @@ body {
         width: 60px;
         height: 60px;
         font-size: 10px;
+        margin: 0 5px;
     }
 
     .call-button img {
@@ -108,5 +118,20 @@ body {
     .visualizer-container {
         width: 200px;
         height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .call-button {
+        width: 55px;
+        height: 55px;
+        font-size: 9px;
+        margin: 0 4px;
+    }
+
+    .call-button img {
+        width: 22px;
+        height: 22px;
+        margin-bottom: 2px;
     }
 }
