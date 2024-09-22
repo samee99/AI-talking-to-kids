@@ -64,8 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeCanvas();
         currentSoundType = soundType;
         drawVisualizer();
-
-        await sendMessageToAI("Hello", true);
     }
 
     function hideCallOverlay() {
