@@ -417,86 +417,69 @@ document.addEventListener('DOMContentLoaded', () => {
         recognitionState = 'waiting';
         listeningStatus.textContent = "AI is speaking...";
 
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        async function attemptPlayback() {
-            try {
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                const timestamp = new Date().getTime();
-                const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
-
-                console.log('Playing audio from URL:', uncachedAudioUrl);
-
-                if (isMobileSafari()) {
-                    console.log('iOS device detected, using Web Audio API for playback');
-                    const response = await fetch(uncachedAudioUrl);
-                    const arrayBuffer = await response.arrayBuffer();
-                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-                    const source = audioContext.createBufferSource();
-                    source.buffer = audioBuffer;
-                    analyser = audioContext.createAnalyser();
-                    analyser.fftSize = 256;
-                    const bufferLength = analyser.frequencyBinCount;
-                    dataArray = new Uint8Array(bufferLength);
-
-                    source.connect(analyser);
-                    analyser.connect(audioContext.destination);
-                    source.start();
-
-                    console.log('Audio playback started on iOS');
-                    drawVisualizer();
-
-                    source.onended = handleAudioEnded;
-                } else {
-                    const audio = new Audio(uncachedAudioUrl);
-                    audio.oncanplaythrough = () => {
-                        console.log('Audio can play through');
-                        audio.play().catch(e => {
-                            console.error('Audio play error:', e);
-                            throw e;
-                        });
-                    };
-                    audio.onerror = (e) => {
-                        console.error('Audio error:', e);
-                        throw e;
-                    };
-
-                    await audio.play();
-
-                    console.log('Audio playback started');
-
-                    const source = audioContext.createMediaElementSource(audio);
-                    analyser = audioContext.createAnalyser();
-                    analyser.fftSize = 256;
-                    const bufferLength = analyser.frequencyBinCount;
-                    dataArray = new Uint8Array(bufferLength);
-
-                    source.connect(analyser);
-                    analyser.connect(audioContext.destination);
-
-                    drawVisualizer();
-
-                    audio.onended = handleAudioEnded;
-                }
-            } catch (error) {
-                console.error('Error playing audio:', error);
-                retryCount++;
-                if (retryCount < maxRetries) {
-                    console.log(`Retrying playback (attempt ${retryCount + 1} of ${maxRetries})...`);
-                    await attemptPlayback();
-                } else {
-                    throw error;
-                }
-            }
-        }
-
         try {
-            await attemptPlayback();
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const timestamp = new Date().getTime();
+            const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
+
+            console.log('Playing audio from URL:', uncachedAudioUrl);
+
+            if (isMobileSafari()) {
+                console.log('iOS device detected, using alternative audio playback method');
+                const audio = new Audio(uncachedAudioUrl);
+                audio.play().catch(e => console.error('iOS audio play error:', e));
+                audio.onended = handleAudioEnded;
+
+                console.log('Audio playback started');
+                audio.onloadedmetadata = () => console.log('Audio duration:', audio.duration);
+                audio.ontimeupdate = () => console.log('Audio current time:', audio.currentTime);
+
+                const source = audioContext.createMediaElementSource(audio);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                drawVisualizer();
+            } else {
+                const audio = new Audio(uncachedAudioUrl);
+                audio.oncanplaythrough = () => {
+                    console.log('Audio can play through');
+                    audio.play().catch(e => {
+                        console.error('Audio play error:', e);
+                        throw e;
+                    });
+                };
+                audio.onerror = (e) => {
+                    console.error('Audio error:', e);
+                    throw e;
+                };
+
+                await audio.play();
+
+                console.log('Audio playback started');
+                console.log('Audio duration:', audio.duration);
+                audio.ontimeupdate = () => console.log('Audio current time:', audio.currentTime);
+
+                const source = audioContext.createMediaElementSource(audio);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                drawVisualizer();
+
+                audio.onended = handleAudioEnded;
+            }
         } catch (error) {
-            console.error('All retry attempts failed:', error);
+            console.error('Error playing audio:', error);
             alert('An error occurred while playing the audio. Please try again.');
             handleAudioEnded();
         }
@@ -513,6 +496,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 startContinuousListening();
             }
         }, 1000);
+    }
+
+    const iosWarning = document.createElement('div');
+    iosWarning.id = 'ios-warning';
+    iosWarning.style.display = 'none';
+    iosWarning.style.color = 'red';
+    iosWarning.style.marginTop = '10px';
+    iosWarning.textContent = 'For the best experience on iOS, please use the "Request Desktop Site" option in Safari.';
+    document.body.insertBefore(iosWarning, document.body.firstChild);
+
+    if (isMobileSafari()) {
+        document.getElementById('ios-warning').style.display = 'block';
     }
 
     checkUserAuthentication().then((authenticated) => {

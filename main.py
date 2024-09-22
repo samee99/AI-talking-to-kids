@@ -201,12 +201,15 @@ def generate_response():
         logger.info(f"Generating audio with ElevenLabs: text={ai_response}")
 
         # Generate audio using ElevenLabs
-        # Use a child-friendly voice (e.g., "Bella" or "Josh")
         audio = generate(
             text=ai_response,
             voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL", name="Bella"),
             model="eleven_monolingual_v1"
         )
+
+        # Add more detailed logging for the audio generation process
+        logger.info(f"Generated audio size: {len(audio)} bytes")
+        logger.info(f"Audio content type: {type(audio)}")
 
         # Save audio to a temporary file
         temp_audio_path = os.path.join('static', 'temp', f"{object_name}_response.mp3")
@@ -311,6 +314,15 @@ def process_audio():
     except Exception as e:
         logger.error(f"Error in process_audio: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
+@app.route('/check-audio/<path:filename>')
+def check_audio(filename):
+    file_path = os.path.join('static', 'temp', filename)
+    if os.path.exists(file_path):
+        file_size = os.path.getsize(file_path)
+        return jsonify({"exists": True, "size": file_size})
+    else:
+        return jsonify({"exists": False})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
