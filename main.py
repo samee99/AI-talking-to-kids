@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from flask import Flask, render_template, send_from_directory, request, jsonify, redirect, url_for, session, flash
 from shutil import copy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -229,44 +230,47 @@ def generate_response():
 @app.route('/process-audio', methods=['POST'])
 def process_audio():
     logger.info("Received request to /process-audio")
+    start_time = time.time()
+
+    # Log request details
+    logger.info(f"Request headers: {request.headers}")
+    logger.info(f"Request form data: {request.form}")
+
     if 'user_id' not in session:
         logger.warning("Unauthenticated user tried to access process-audio")
         return jsonify({"error": "User not authenticated"}), 401
 
-    logger.debug(f"Request headers: {request.headers}")
-    logger.debug(f"Request form data: {request.form}")
-
-    if 'audio' not in request.files:
-        logger.error("No audio file provided in the request")
-        return jsonify({"error": "No audio file provided"}), 400
-
-    audio_file = request.files['audio']
-    object_name = request.form.get('object')
-    age = request.form.get('age')
-
-    logger.info(f"Received audio file: {audio_file.filename}, Object: {object_name}, Age: {age}")
-
-    if not audio_file or not object_name or not age:
-        logger.error("Missing required fields in the request")
-        return jsonify({"error": "Missing required fields"}), 400
-
     try:
+        # Log audio file details
+        audio_file = request.files['audio']
+        logger.info(f"Received audio file: {audio_file.filename}, size: {audio_file.content_length} bytes")
+
+        object_name = request.form.get('object')
+        age = request.form.get('age')
+
+        logger.info(f"Processing audio for Object: {object_name}, Age: {age}")
+
+        if not audio_file or not object_name or not age:
+            logger.error("Missing required fields in the request")
+            return jsonify({"error": "Missing required fields"}), 400
+
         # Save the audio file temporarily
+        save_start_time = time.time()
         temp_audio_path = os.path.join('static', 'temp', 'temp_audio.wav')
         audio_file.save(temp_audio_path)
-        logger.info(f"Saved temporary audio file: {temp_audio_path}")
+        logger.info(f"Saved temporary audio file: {temp_audio_path} (took {time.time() - save_start_time:.2f} seconds)")
 
         # Transcribe audio using Whisper
+        transcribe_start_time = time.time()
         logger.info("Starting audio transcription with Whisper")
         with open(temp_audio_path, 'rb') as audio_file:
             transcript = openai.Audio.transcribe("whisper-1", audio_file)
-
-        logger.info(f"Transcription result: {transcript}")
+        logger.info(f"Transcription completed in {time.time() - transcribe_start_time:.2f} seconds. Result: {transcript['text']}")
 
         # Generate AI response
-        system_message = f"You are {object_name} talking to a {age}-year-old child. Respond in a friendly, educational manner appropriate for their age, in 50 words or less. Maintain context from previous messages."
-        
+        ai_start_time = time.time()
         logger.info("Generating AI response")
+        system_message = f"You are {object_name} talking to a {age}-year-old child. Respond in a friendly, educational manner appropriate for their age, in 50 words or less. Maintain context from previous messages."
         ai_response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -274,16 +278,17 @@ def process_audio():
                 {"role": "user", "content": transcript['text']}
             ]
         ).choices[0].message.content
-
-        logger.info(f"AI response generated: {ai_response}")
+        logger.info(f"AI response generated in {time.time() - ai_start_time:.2f} seconds: {ai_response}")
 
         # Generate audio using ElevenLabs
+        audio_start_time = time.time()
         logger.info("Generating audio with ElevenLabs")
         audio = generate(
             text=ai_response,
             voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL", name="Bella"),
             model="eleven_monolingual_v1"
         )
+        logger.info(f"Audio generated in {time.time() - audio_start_time:.2f} seconds")
 
         # Save audio to a temporary file
         temp_audio_path = os.path.join('static', 'temp', f"{object_name}_response.mp3")
@@ -299,6 +304,7 @@ def process_audio():
             "text": ai_response,
             "audio_url": f"/static/temp/{object_name}_response.mp3"
         }
+        logger.info(f"Total processing time: {time.time() - start_time:.2f} seconds")
         logger.info(f"Sending response: {response_data}")
         return jsonify(response_data)
 
