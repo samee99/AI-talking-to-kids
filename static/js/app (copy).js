@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (recognition) {
             recognition.stop();
         }
-        recognitionState = 'idle';
     }
 
     async function checkUserAuthentication() {
@@ -216,32 +215,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function startContinuousListening() {
+        // Check if SpeechRecognition is supported
         if (!('webkitSpeechRecognition' in window)) {
             alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
             return;
         }
 
+        // Check for microphone permissions
         const hasMicrophonePermission = await checkMicrophonePermission();
         if (!hasMicrophonePermission) {
             alert("Unable to access the microphone. Please make sure you've granted microphone permissions to this website in your browser settings.");
             return;
         }
 
-        if (recognitionState !== 'idle' && recognitionState !== 'waiting') {
-            console.log('Recognition is not ready. Current state:', recognitionState);
+        // Make sure we don't start multiple recognition sessions
+        if (recognitionState === 'listening' || recognitionState === 'processing') {
+            console.log('Recognition is already running. Current state:', recognitionState);
             return;
         }
 
+        // Initialize SpeechRecognition if not already initialized
         if (!recognition) {
             recognition = new webkitSpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
+            recognition.continuous = false; // Stop after one result, we will restart it manually
+            recognition.interimResults = false; // Get only final results
 
             recognition.onstart = () => {
                 recognitionState = 'listening';
                 listeningStatus.textContent = "Listening...";
                 console.log('Recognition started');
-                playBeep();
+                playBeep(); // Play beep sound when recognition starts
             };
 
             recognition.onresult = (event) => {
@@ -249,28 +252,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 const transcript = event.results[0][0].transcript;
                 listeningStatus.textContent = "Processing...";
                 console.log('Recognition result:', transcript);
-                sendMessageToAI(transcript);
+                sendMessageToAI(transcript); // Send the recognized speech to AI
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                listeningStatus.textContent = "Error occurred: " + event.error;
+                recognitionState = 'idle';
+
+                // Retry recognition unless the error is 'aborted'
+                if (event.error !== 'aborted') {
+                    setTimeout(() => {
+                        console.log('Retrying recognition after error...');
+                        recognition.start();
+                    }, 500);
+                }
             };
 
             recognition.onend = () => {
                 console.log('Recognition ended. Current state:', recognitionState);
-                if (recognitionState === 'listening') {
+                if (recognitionState === 'processing') {
                     recognitionState = 'idle';
-                    setTimeout(() => {
-                        if (recognitionState === 'idle' && !callOverlay.classList.contains('hidden')) {
-                            recognition.start();
-                        }
-                    }, 1000);
+                } else {
+                    // If the call overlay is visible, restart recognition
+                    if (!callOverlay.classList.contains('hidden')) {
+                        console.log("Restarting recognition...");
+                        recognitionState = 'idle';
+                        recognition.start();
+                    }
                 }
             };
         }
 
-        if (recognitionState === 'idle' || recognitionState === 'waiting') {
+        // Start recognition only if idle
+        if (recognitionState === 'idle') {
             recognition.start();
         }
     }
 
+
     async function sendMessageToAI(message, isInitialGreeting = false) {
+        
+
         try {
             if (recognitionState !== 'idle' && !isInitialGreeting) {
                 console.log('Recognition is not idle. Current state:', recognitionState);
@@ -278,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             listeningStatus.textContent = "AI is thinking...";
-
+            
             if (!currentSoundType) {
                 throw new Error('No object selected. Please select an object before sending a message.');
             }
@@ -289,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 age: parseInt(ageSelect.value),
                 is_initial_greeting: isInitialGreeting
             };
-
+            
             const response = await fetch('/generate-response', {
                 method: 'POST',
                 headers: {
@@ -305,15 +328,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             await playAIResponse(data.text, data.audio_url);
-
-            recognitionState = 'waiting';
-            setTimeout(() => {
-                if (recognitionState === 'waiting') {
-                    recognitionState = 'idle';
-                    startContinuousListening();
+            
+            if (isInitialGreeting) {
+                startContinuousListening();
+            } else {
+                if (recognition && recognitionState === 'idle') {
+                    recognition.start();
                 }
-            }, 2000);
-
+            }
         } catch (error) {
             console.error('Error in sendMessageToAI:', error);
             alert(`An error occurred while processing your message: ${error.message}. Please try again.`);
@@ -323,9 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function playAIResponse(text, audioUrl) {
-        recognitionState = 'waiting';
         listeningStatus.textContent = "AI is speaking...";
-
+        
         try {
             const audio = new Audio(audioUrl);
             await audio.play();
@@ -345,19 +366,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 cancelAnimationFrame(animationId);
                 canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
                 listeningStatus.textContent = "Listening...";
-                setTimeout(() => {
-                    if (recognitionState === 'waiting') {
-                        recognitionState = 'idle';
-                        startContinuousListening();
-                    }
-                }, 1000);
+                if (recognition && recognitionState === 'idle') {
+                    recognition.start();
+                }
             };
         } catch (error) {
             console.error('Error playing audio:', error);
             alert('An error occurred while playing the audio. Please try again.');
             listeningStatus.textContent = "Click to speak";
-            recognitionState = 'idle';
-            startContinuousListening();
+            if (recognition && recognitionState === 'idle') {
+                recognition.start();
+            }
         }
     }
 
