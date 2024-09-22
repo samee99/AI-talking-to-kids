@@ -39,8 +39,8 @@
                 <div class="sound-button-container bg-white rounded-lg shadow-md overflow-hidden">
                     <button class="sound-button w-full h-full" data-sound="{{ sound }}">
                         <img src="{{ url_for('static', filename='images/' + sound + '.jpg') }}" alt="{{ sound|capitalize }}" class="w-32 h-32 object-cover transition-transform duration-200 ease-in-out transform hover:scale-110">
-                        <p class="text-center mt-2">{{ sound|capitalize }}</p>
                     </button>
+                    <p class="text-center mt-2">{{ sound|capitalize }}</p>
                 </div>
                 {% endfor %}
             </div>
