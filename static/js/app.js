@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drawVisualizer();
 
         if (isMobileSafari()) {
+            console.log('iOS device detected, showing record button');
             recordButton.style.display = 'block';
             callOverlay.appendChild(recordButton);
         }
@@ -96,8 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         recognitionState = 'idle';
         if (isMobileSafari()) {
+            console.log('Hiding record button for iOS device');
             recordButton.style.display = 'none';
-            callOverlay.removeChild(recordButton);
+            if (recordButton.parentNode === callOverlay) {
+                callOverlay.removeChild(recordButton);
+            }
         }
     }
 
@@ -222,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playBeep() {
+        console.log('Playing beep sound');
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
 
@@ -421,7 +426,17 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Playing audio from URL:', uncachedAudioUrl);
 
             const audio = new Audio(uncachedAudioUrl);
+            
+            // iOS-specific logging
+            if (isMobileSafari()) {
+                console.log('iOS device detected, setting up audio');
+                audio.addEventListener('canplaythrough', () => console.log('Audio can play through'));
+                audio.addEventListener('error', (e) => console.error('Audio error:', e));
+            }
+
             await audio.play();
+
+            console.log('Audio playback started');
 
             const source = audioContext.createMediaElementSource(audio);
             analyser = audioContext.createAnalyser();
@@ -435,6 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawVisualizer();
 
             audio.onended = () => {
+                console.log('Audio playback ended');
                 cancelAnimationFrame(animationId);
                 canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
                 listeningStatus.textContent = "Listening...";

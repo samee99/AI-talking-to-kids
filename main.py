@@ -186,7 +186,7 @@ def generate_response():
     try:
         logger.info(f"Sending request to OpenAI: system_message={system_message}, user_content={user_content}")
         response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_content}
@@ -272,7 +272,7 @@ def process_audio():
         logger.info("Generating AI response")
         system_message = f"You are {object_name} talking to a {age}-year-old child. Respond in a friendly, educational manner appropriate for their age, in 50 words or less. Maintain context from previous messages."
         ai_response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": transcript['text']}
