@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function sendMessageToAI(message, isInitialGreeting = false) {
         try {
-            console.log('Sending message to AI:', message); // Add this line for debugging
+            console.log('Sending message to AI:', message);
 
             listeningStatus.textContent = "AI is thinking...";
 
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             await playAIResponse(data.text, data.audio_url);
 
-            recognitionState = 'waiting'; // Change this line from 'processing' to 'waiting'
+            recognitionState = 'waiting';
             setTimeout(() => {
                 if (recognitionState === 'waiting') {
                     recognitionState = 'idle';
@@ -324,7 +324,16 @@ document.addEventListener('DOMContentLoaded', () => {
         listeningStatus.textContent = "AI is speaking...";
 
         try {
-            const audio = new Audio(audioUrl);
+            // Add a small delay to ensure the audio file is ready
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Add a timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const uncachedAudioUrl = `${audioUrl}?t=${timestamp}`;
+
+            console.log('Playing audio from URL:', uncachedAudioUrl);
+
+            const audio = new Audio(uncachedAudioUrl);
             await audio.play();
 
             const source = audioContext.createMediaElementSource(audio);
