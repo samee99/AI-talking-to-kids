@@ -14,6 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
     recordButton.textContent = 'Start Recording';
     recordButton.style.display = 'none';
 
+    
+    // Select the Audio button by its ID or class
+    const audioButton = document.getElementById('audio-button');
+    audioButton.addEventListener('click', () => {
+        if (isMobileSafari()) {
+            console.log('Audio button clicked on iOS, starting MediaRecorder');
+            startContinuousListening();  // Start listening for voice input
+        } else {
+            console.log('Audio button clicked on non-iOS device');
+        }
+    });
     const sounds = {
         moon: { file: 'moon', image: new Image() },
         sun: { file: 'sun', image: new Image() },
@@ -54,6 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
+    // Listen for click on the Audio button to resume AudioContext on iOS
+    if (audioButton) {
+        audioButton.addEventListener('click', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log('AudioContext resumed after user interaction on iOS via the Audio button.');
+                });
+            }
+        });
+    }
+
     async function loadSound(soundType, age) {
         const response = await fetch(`/static/sounds/${sounds[soundType].file}_${age}_year_old.mp3`);
         const arrayBuffer = await response.arrayBuffer();
@@ -81,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drawVisualizer();
 
         if (isMobileSafari()) {
-            console.log('iOS device detected, showing record button');
+            console.log('iOS device detected');
             recordButton.style.display = 'block';
             callOverlay.appendChild(recordButton);
         }
@@ -224,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Using MediaRecorder API for iOS');
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/wav' });
 
                 mediaRecorder.ondataavailable = (event) => {
                     audioChunks.push(event.data);
@@ -235,20 +257,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('MediaRecorder stopped, sending audio to server');
                     const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                     console.log('Audio blob created:', audioBlob.size, 'bytes');
-                    await sendAudioToServer(audioBlob);
+                    await sendAudioToServer(audioBlob);  // Send the audio to your server
                     audioChunks = [];
                 };
 
-                recordButton.addEventListener('click', () => {
+                // Ensuring the record button on the call overlay starts the MediaRecorder
+                const audioButton = document.getElementById('audio-button');
+                audioButton.addEventListener('click', () => {
                     if (mediaRecorder.state === 'inactive') {
                         mediaRecorder.start();
                         console.log('MediaRecorder started');
-                        recordButton.textContent = 'Stop Recording';
+                        audioButton.textContent = 'Stop Recording';
                         playBeep();
                     } else {
                         mediaRecorder.stop();
                         console.log('MediaRecorder stopped');
-                        recordButton.textContent = 'Start Recording';
+                        audioButton.textContent = 'Audio';  // Reset button text after stopping
                     }
                 });
             } catch (error) {
@@ -256,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Failed to access the microphone. Please check your browser settings and try again.');
             }
         } else {
+            // For non-iOS platforms, use the Web Speech API
             if (!('webkitSpeechRecognition' in window)) {
                 alert("Speech recognition is not supported in your browser. Please use Chrome or Edge.");
                 return;
@@ -310,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
 
     async function sendAudioToServer(audioBlob) {
         console.log('Preparing to send audio to server');
@@ -416,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const source = audioContext.createBufferSource();
                     source.buffer = audioBuffer;
-                    
+
                     analyser = audioContext.createAnalyser();
                     analyser.fftSize = 256;
                     const bufferLength = analyser.frequencyBinCount;
@@ -433,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     drawVisualizer();
                 } else {
                     const audio = new Audio();
-                    
+
                     audio.onloadedmetadata = () => {
                         console.log('Audio metadata loaded. Duration:', audio.duration);
                     };
@@ -512,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     soundButtons.forEach(button => {
         button.addEventListener('click', () => {
-            if (audioContext.state === 'suspended') {
+            if (audioContext.state === 'suspended' && !isMobileSafari()) {
                 audioContext.resume();
             }
             const soundType = button.dataset.sound;

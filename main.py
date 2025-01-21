@@ -29,11 +29,13 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 if not openai.api_key:
     logger.warning("OPENAI_API_KEY not found in environment variables")
 
+
 # Database setup
 def get_db():
     db = sqlite3.connect('users.db')
     db.row_factory = sqlite3.Row
     return db
+
 
 def init_db():
     with app.app_context():
@@ -42,6 +44,7 @@ def init_db():
             'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)'
         )
         db.commit()
+
 
 init_db()
 
@@ -69,6 +72,7 @@ for sound in sound_files:
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         copy(src, dst)
 
+
 @app.route("/")
 def index():
     user = None
@@ -78,18 +82,21 @@ def index():
                           (session['user_id'], )).fetchone()
     return render_template("index.html", user=user)
 
+
 @app.route('/static/sounds/<path:filename>')
 def serve_sound(filename):
     return send_from_directory('static/sounds', filename)
+
 
 @app.route('/check-auth')
 def check_auth():
     if 'user_id' in session:
         db = get_db()
         user = db.execute('SELECT username FROM users WHERE id = ?',
-                          (session['user_id'],)).fetchone()
+                          (session['user_id'], )).fetchone()
         return jsonify({"authenticated": True, "username": user['username']})
     return jsonify({"authenticated": False})
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -117,6 +124,7 @@ def signup():
 
     return render_template('signup.html')
 
+
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
     if request.method == 'POST':
@@ -141,15 +149,18 @@ def signin():
 
     return render_template('signin.html')
 
+
 @app.route('/signout')
 def signout():
     session.clear()
     return redirect(url_for('index'))
 
+
 @app.route('/generate-response', methods=['POST'])
 def generate_response():
     if 'user_id' not in session:
-        logger.warning("Unauthenticated user tried to access generate-response")
+        logger.warning(
+            "Unauthenticated user tried to access generate-response")
         return jsonify({"error": "User not authenticated"}), 401
 
     data = request.json
@@ -184,35 +195,42 @@ def generate_response():
         user_content = user_message
 
     try:
-        logger.info(f"Sending request to OpenAI: system_message={system_message}, user_content={user_content}")
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_content}
-            ]
+        logger.info(
+            f"Sending request to OpenAI: system_message={system_message}, user_content={user_content}"
         )
+        response = openai.chat.completions.create(model="gpt-4o-mini",
+                                                  messages=[{
+                                                      "role":
+                                                      "system",
+                                                      "content":
+                                                      system_message
+                                                  }, {
+                                                      "role":
+                                                      "user",
+                                                      "content":
+                                                      user_content
+                                                  }])
         ai_response = response.choices[0].message.content
         logger.info(f"Received response from OpenAI: {ai_response}")
-        
+
         if not ai_response:
             raise ValueError("Received empty response from OpenAI")
 
         logger.info(f"Generating audio with ElevenLabs: text={ai_response}")
 
         # Generate audio using ElevenLabs
-        audio = generate(
-            text=ai_response,
-            voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL", name="Bella"),
-            model="eleven_monolingual_v1"
-        )
+        audio = generate(text=ai_response,
+                         voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL",
+                                     name="Bella"),
+                         model="eleven_monolingual_v1")
 
         # Add more detailed logging for the audio generation process
         logger.info(f"Generated audio size: {len(audio)} bytes")
         logger.info(f"Audio content type: {type(audio)}")
 
         # Save audio to a temporary file
-        temp_audio_path = os.path.join('static', 'temp', f"{object_name}_response.mp3")
+        temp_audio_path = os.path.join('static', 'temp',
+                                       f"{object_name}_response.mp3")
         os.makedirs(os.path.dirname(temp_audio_path), exist_ok=True)
         with open(temp_audio_path, "wb") as f:
             if isinstance(audio, bytes):
@@ -230,6 +248,7 @@ def generate_response():
         logger.error(f"Error in generate_response: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/process-audio', methods=['POST'])
 def process_audio():
     logger.info("Received request to /process-audio")
@@ -246,7 +265,9 @@ def process_audio():
     try:
         # Log audio file details
         audio_file = request.files['audio']
-        logger.info(f"Received audio file: {audio_file.filename}, size: {audio_file.content_length} bytes")
+        logger.info(
+            f"Received audio file: {audio_file.filename}, size: {audio_file.content_length} bytes"
+        )
 
         object_name = request.form.get('object')
         age = request.form.get('age')
@@ -261,14 +282,19 @@ def process_audio():
         save_start_time = time.time()
         temp_audio_path = os.path.join('static', 'temp', 'temp_audio.wav')
         audio_file.save(temp_audio_path)
-        logger.info(f"Saved temporary audio file: {temp_audio_path} (took {time.time() - save_start_time:.2f} seconds)")
+        logger.info(
+            f"Saved temporary audio file: {temp_audio_path} (took {time.time() - save_start_time:.2f} seconds)"
+        )
 
         # Transcribe audio using Whisper
         transcribe_start_time = time.time()
         logger.info("Starting audio transcription with Whisper")
         with open(temp_audio_path, 'rb') as audio_file:
-            transcript = openai.Audio.transcribe("whisper-1", audio_file)
-        logger.info(f"Transcription completed in {time.time() - transcribe_start_time:.2f} seconds. Result: {transcript['text']}")
+            transcript = openai.audio.transcriptions.create(model="whisper-1",
+                                                            file=audio_file)
+        logger.info(
+            f"Transcription completed in {time.time() - transcribe_start_time:.2f} seconds. Result: {transcript['text']}"
+        )
 
         # Generate AI response
         ai_start_time = time.time()
@@ -276,25 +302,30 @@ def process_audio():
         system_message = f"You are {object_name} talking to a {age}-year-old child. Respond in a friendly, educational manner appropriate for their age, in 50 words or less. Maintain context from previous messages."
         ai_response = openai.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": transcript['text']}
-            ]
-        ).choices[0].message.content
-        logger.info(f"AI response generated in {time.time() - ai_start_time:.2f} seconds: {ai_response}")
+            messages=[{
+                "role": "system",
+                "content": system_message
+            }, {
+                "role": "user",
+                "content": transcript['text']
+            }]).choices[0].message.content
+        logger.info(
+            f"AI response generated in {time.time() - ai_start_time:.2f} seconds: {ai_response}"
+        )
 
         # Generate audio using ElevenLabs
         audio_start_time = time.time()
         logger.info("Generating audio with ElevenLabs")
-        audio = generate(
-            text=ai_response,
-            voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL", name="Bella"),
-            model="eleven_monolingual_v1"
-        )
-        logger.info(f"Audio generated in {time.time() - audio_start_time:.2f} seconds")
+        audio = generate(text=ai_response,
+                         voice=Voice(voice_id="EXAVITQu4vr4xnSDxMaL",
+                                     name="Bella"),
+                         model="eleven_monolingual_v1")
+        logger.info(
+            f"Audio generated in {time.time() - audio_start_time:.2f} seconds")
 
         # Save audio to a temporary file
-        temp_audio_path = os.path.join('static', 'temp', f"{object_name}_response.mp3")
+        temp_audio_path = os.path.join('static', 'temp',
+                                       f"{object_name}_response.mp3")
         os.makedirs(os.path.dirname(temp_audio_path), exist_ok=True)
         with open(temp_audio_path, "wb") as f:
             if isinstance(audio, bytes):
@@ -307,13 +338,15 @@ def process_audio():
             "text": ai_response,
             "audio_url": f"/static/temp/{object_name}_response.mp3"
         }
-        logger.info(f"Total processing time: {time.time() - start_time:.2f} seconds")
+        logger.info(
+            f"Total processing time: {time.time() - start_time:.2f} seconds")
         logger.info(f"Sending response: {response_data}")
         return jsonify(response_data)
 
     except Exception as e:
         logger.error(f"Error in process_audio: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/check-audio/<path:filename>')
 def check_audio(filename):
@@ -323,6 +356,7 @@ def check_audio(filename):
         return jsonify({"exists": True, "size": file_size})
     else:
         return jsonify({"exists": False})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
